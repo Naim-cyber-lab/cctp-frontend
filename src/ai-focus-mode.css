@@ -1,0 +1,13 @@
+.ai-focus-mode .outline,
+.ai-focus-mode .paper-cover,
+.ai-focus-mode .paper-intro,
+.ai-focus-mode .paper-footer { display: none; }
+.ai-focus-mode .editor-shell { grid-template-columns: minmax(0,1fr); justify-content: stretch; margin-right: min(420px,96vw); padding: 20px 24px; }
+.ai-focus-mode .paper-wrap { width: 100%; max-width: none; }
+.ai-focus-mode .cctp-paper { min-height: calc(100vh - 250px); padding: 34px 42px; box-shadow: none; }
+.ai-focus-mode .paper-chapter { display: none; border-top: 0; padding-top: 0; }
+.ai-focus-mode .paper-chapter:has(.ai-active-paragraph) { display: block; }
+.ai-focus-mode .paper-chapter-title { margin-bottom: 18px; }
+.ai-focus-mode .chapter-ai-button { display: none; }
+.ai-focus-mode .ai-paragraph-panel { width: min(420px,42vw); }
+@media(max-width:900px){.ai-focus-mode .editor-shell{margin-right:0;padding:12px}.ai-focus-mode .paper-wrap{display:none}.ai-focus-mode .ai-paragraph-panel{width:100vw}}

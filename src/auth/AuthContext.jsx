@@ -1,0 +1,5 @@
+import { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch, setAuthToken } from '../api/client';
+const AuthContext=createContext(null);
+export function AuthProvider({children}){const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);useEffect(()=>{apiFetch('/auth/me').then(setUser).catch(()=>setUser(null)).finally(()=>setLoading(false))},[]);const login=async(email,password)=>{const data=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({email,password})});setUser(data.user)};const register=async(email,password)=>{const data=await apiFetch('/auth/register',{method:'POST',body:JSON.stringify({email,password})});setUser(data.user)};const completeOnboarding=async()=>{const updated=await apiFetch('/auth/onboarding/complete',{method:'POST'});setUser(updated)};const logout=async()=>{await apiFetch('/auth/logout',{method:'POST'});setAuthToken(null);setUser(null)};return <AuthContext.Provider value={{user,loading,login,register,completeOnboarding,logout}}>{children}</AuthContext.Provider>}
+export const useAuth=()=>useContext(AuthContext);

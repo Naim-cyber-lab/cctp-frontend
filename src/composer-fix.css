@@ -1,0 +1,18 @@
+.composer {
+  position: relative;
+  z-index: 2;
+  background: #fff;
+}
+
+.composer textarea {
+  position: relative;
+  z-index: 1;
+  display: block;
+  background: #fff;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  resize: vertical;
+}
+
+.ai-activity{margin:20px 44px;padding:12px 14px;border:1px solid #dce5df;border-radius:10px;background:#f8faf7}.ai-activity .typing{margin:0 0 9px;font-weight:700;color:var(--green)}.activity-step{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:10px;color:#718079}.activity-step>span{width:15px;color:#3b755c;text-align:center}.activity-step>span>i{display:inline-block;width:7px;height:7px;border:2px solid #9baba3;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}.generated-label em{font-style:normal;font-size:8px;background:#e5efe9;padding:3px 6px;border-radius:10px}.stream-cursor{display:inline-block;width:2px;height:15px;margin-left:3px;background:var(--green);animation:blink .7s infinite;vertical-align:middle}@keyframes spin{to{transform:rotate(360deg)}}@keyframes blink{50%{opacity:0}}

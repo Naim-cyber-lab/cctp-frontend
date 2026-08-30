@@ -1,0 +1,15 @@
+.pl-partial-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 16px 18px 0;
+  padding: 11px 13px;
+  border: 1px solid #d8e5dc;
+  border-radius: 9px;
+  background: #f3f8f4;
+  color: #49665a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.pl-partial-note svg { flex: none; margin-top: 1px; }
+.pl-partial-note span { display: flex; flex-direction: column; }

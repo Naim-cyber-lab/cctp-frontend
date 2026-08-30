@@ -1,0 +1,9 @@
+node_modules/
+dist/
+release/
+.env.production
+.env.local
+.idea/
+src-tauri/target/
+src-tauri/gen/
+*.log

@@ -1,0 +1,2 @@
+@media(min-width:951px){.topbar{grid-template-columns:230px 1fr auto minmax(190px,auto)}}
+@media(max-width:950px){.topbar{grid-template-columns:150px 1fr minmax(46px,auto)}.topbar>.stepper{display:none}}

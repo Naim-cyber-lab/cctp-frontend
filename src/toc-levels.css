@@ -1,0 +1,14 @@
+.paper-toc .toc-chapter > a:first-child { margin-top: 5px; }
+.paper-toc .toc-sublevel-1,
+.paper-toc .toc-sublevel-2,
+.paper-toc .toc-sublevel-3 { padding-top: 6px; padding-bottom: 6px; border-bottom: 0; }
+.paper-toc .toc-sublevel-1 { margin-left: 25px; }
+.paper-toc .toc-sublevel-2 { margin-left: 48px; }
+.paper-toc .toc-sublevel-3 { margin-left: 70px; }
+.paper-toc .toc-sublevel-1 b,
+.paper-toc .toc-sublevel-2 b,
+.paper-toc .toc-sublevel-3 b { font-size: 8px; font-weight: 600; }
+.paper-toc .toc-sublevel-1 span { font-size: 9px; font-weight: 600; }
+.paper-toc .toc-sublevel-2 span,
+.paper-toc .toc-sublevel-3 span { color: #65716b; font-size: 8.5px; font-weight: 500; }
+@media(max-width:600px){.paper-toc .toc-sublevel-1{margin-left:14px}.paper-toc .toc-sublevel-2{margin-left:27px}.paper-toc .toc-sublevel-3{margin-left:40px}}

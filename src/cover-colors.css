@@ -1,0 +1,46 @@
+.cover-canvas {
+  background: linear-gradient(
+    90deg,
+    var(--cover-sidebar-color, #eef0ec) 0 29%,
+    var(--cover-page-color, #fff) 29%
+  );
+}
+
+.cover-color-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border: 1px solid #d6dfda;
+  border-radius: 8px;
+  background: #fff;
+  color: #315f50;
+}
+
+.cover-color-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.cover-color-controls input[type="color"] {
+  width: 24px;
+  height: 24px;
+  padding: 1px;
+  border: 1px solid #cbd8d0;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.cover-color-controls button {
+  padding: 5px 7px;
+  font-size: 8px;
+}
+
+@media (max-width: 850px) {
+  .cover-canvas-actions { flex-wrap: wrap; }
+  .cover-color-controls { order: 3; }
+}

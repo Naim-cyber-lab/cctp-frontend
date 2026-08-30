@@ -1,0 +1,18 @@
+import { useState } from 'react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, RefreshCw, Sparkles, X } from 'lucide-react';
+import { refreshChapterEvaluation } from '../api/client';
+import { useEvaluationStream } from '../hooks/useEvaluationStream';
+import '../chapter-evaluation.css';
+import '../chapter-evaluation-buttons.css';
+
+const evaluationIsBusy=status=>status==='pending'||status==='running'||status==='queued';
+
+export function ChapterEvaluationPanel({cctpId,chapterId,chapterTitle,onClose}){
+ const [summary,setSummary]=useEvaluationStream(cctpId,chapterId,null,true); const [refreshing,setRefreshing]=useState(false),[requestError,setRequestError]=useState('');
+ const evaluation=summary?.evaluation||null; const loading=evaluationIsBusy(summary?.status)||refreshing; const error=summary?.status==='error'?(summary.error||'Le recalcul a échoué.'):requestError;
+ const refresh=async()=>{setRefreshing(true);setRequestError('');setSummary(current=>({...current,status:'pending',progressMessage:'Envoi de la demande…',draftText:''}));try{await refreshChapterEvaluation(cctpId,chapterId)}catch(reason){setRequestError(reason.message)}finally{setRefreshing(false)}};
+ const tone=evaluation?.score>=85?'good':evaluation?.score>=60?'medium':'weak';
+ return <aside className="evaluation-panel"><header><span><ClipboardCheck size={18}/><b>Évaluation critique · {chapterTitle}</b></span><button onClick={onClose}><X size={18}/></button></header><div className="evaluation-body"><section className="evaluation-intro"><Sparkles size={17}/><div><b>Contrôle exigeant Plâtrerie</b><p>La note mesure si le chapitre est réellement précis, consultable et contrôlable — pas seulement bien rédigé.</p></div></section>{loading&&<section className="evaluation-progress"><b>{summary?.progressMessage||'Mise à jour en arrière-plan'}</b><div className="active"><span><i/></span>{summary?.draftText||'L’IA contrôle la dernière version enregistrée…'}<i className="stream-caret"/></div></section>}{error&&<p className="evaluation-error">{error}</p>}{!loading&&evaluation&&<><section className={`evaluation-score ${tone}`}><div><strong>{evaluation.score}</strong><small>/100</small></div><p><b>{tone==='good'?'Chapitre robuste':tone==='medium'?'Corrections nécessaires':'Chapitre à reprendre'}</b>{evaluation.verdict}</p></section><Improvements items={evaluation.improvements}/><EvaluationList title="Risques et points négatifs" icon={AlertTriangle} items={evaluation.risks} tone="warning"/><EvaluationList title="Informations manquantes" icon={AlertTriangle} items={evaluation.missing_information} tone="warning"/><EvaluationList title="Points déjà solides" icon={CheckCircle2} items={evaluation.strengths} tone="positive"/></>} {!loading&&<button className="evaluation-refresh" onClick={refresh}><RefreshCw size={14}/>{evaluation?'Réévaluer avec la grille stricte':'Lancer l’évaluation'}</button>}</div><footer>Cette note critique reste une aide et ne remplace pas la validation du maître d’œuvre.</footer></aside>
+}
+function Improvements({items=[]}){if(!items.length)return null;return <section className="evaluation-improvements"><h3><AlertTriangle size={15}/> Axes d’amélioration prioritaires</h3>{items.map((item,index)=><article key={index}><span className={`priority ${item.priority?.toLowerCase()}`}>{item.priority}</span><div><b>{item.title}</b><p>{item.detail}</p></div></article>)}</section>}
+function EvaluationList({title,icon:Icon,items=[],tone=''}){if(!items.length)return null;return <section className={`evaluation-list ${tone}`}><h3><Icon size={15}/>{title}</h3><ul>{items.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}

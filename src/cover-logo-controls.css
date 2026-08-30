@@ -1,0 +1,24 @@
+.draggable-cover-logo { min-width: 115px; }
+.draggable-cover-logo.selected { border-color: #39735a; box-shadow: 0 0 0 2px #b9d4c6, 0 8px 22px #163b2926; }
+.draggable-cover-logo .logo-visual { flex: 0 0 42%; min-width: 45px; }
+.draggable-cover-logo .logo-visual img { width: 100%; max-height: 120px; object-fit: contain; }
+.draggable-cover-logo.layout-right,
+.draggable-cover-logo.layout-left { display: flex; align-items: center; gap: 8px; }
+.draggable-cover-logo.layout-left { flex-direction: row-reverse; }
+.draggable-cover-logo.layout-below { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.draggable-cover-logo.layout-below .logo-visual { width: 100%; }
+.draggable-cover-logo.layout-none .logo-visual { width: 100%; }
+.logo-caption { flex: 1; min-width: 55px; padding: 5px; border: 1px dashed transparent; border-radius: 5px; cursor: text; user-select: text; white-space: pre-wrap; font: 8px/1.45 Manrope; color: #2f3d36; }
+.logo-caption:hover { border-color: #a9bdb2; background: #fff; }
+.logo-caption:focus { outline: 2px solid #91b3a2; border-color: transparent; background: #fff; }
+.logo-caption:empty::before { content: attr(data-placeholder); color: #8b9690; font-style: italic; }
+.cover-logo-inspector { position: absolute; z-index: 12; top: 63px; right: 18px; display: flex; align-items: center; gap: 12px; padding: 9px 11px; border: 1px solid #cbd8d0; border-radius: 9px; background: #fff; box-shadow: 0 8px 22px #1734281f; }
+.cover-logo-inspector > b { color: #315f50; font-size: 9px; }
+.cover-logo-inspector label { display: flex; align-items: center; gap: 6px; color: #718078; font-size: 8px; }
+.cover-logo-inspector input[type="range"] { width: 90px; accent-color: #315f50; }
+.cover-logo-inspector select { padding: 5px 7px; border: 1px solid #d5ddd8; border-radius: 6px; background: #fff; color: #405149; font-size: 8px; }
+.logo-size-control button { width: 22px; height: 22px; padding: 0; border: 1px solid #d0dad4; border-radius: 5px; background: #f7faf8; color: #315f50; font-size: 14px; line-height: 1; }
+.logo-size-control strong { min-width: 26px; color: #315f50; font-size: 8px; }
+.logo-resize-handle { position: absolute; z-index: 9; right: -7px; bottom: -7px; width: 16px; height: 16px; border: 2px solid #fff; border-radius: 4px; background: #315f50; box-shadow: 0 2px 6px #0003; cursor: nwse-resize; touch-action: none; }
+.logo-resize-handle::after { content: ""; position: absolute; right: 2px; bottom: 2px; width: 5px; height: 5px; border-right: 1px solid #fff; border-bottom: 1px solid #fff; }
+@media(max-width:700px){.cover-logo-inspector{left:12px;right:12px;top:60px;flex-wrap:wrap}.cover-logo-inspector input[type="range"]{width:70px}}

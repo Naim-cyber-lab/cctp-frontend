@@ -1,0 +1,61 @@
+name: Build desktop app (Windows / macOS / Linux)
+
+# Manual trigger for now: run it from the "Actions" tab on GitHub, optionally giving
+# the URL of your hosted backend. Builds happen on GitHub's own clean machines, so the
+# local Smart App Control restriction on the dev machine does not apply here.
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "URL de l'API backend (ex: https://api.votredomaine.com/api)"
+        required: false
+        default: "http://localhost:8001/api"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest, macos-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Dépendances système (Linux uniquement)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential libssl-dev libgtk-3-dev libayatana-appindicator3-dev
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Générer les icônes
+        run: npx tauri icon icon_source.png
+        continue-on-error: true # ignoré si les icônes sont déjà commitées dans src-tauri/icons
+
+      - name: Compiler l'app desktop (Tauri)
+        env:
+          VITE_API_URL: ${{ inputs.api_url }}
+        run: npm run tauri:build
+
+      - name: Publier les fichiers générés
+        uses: actions/upload-artifact@v4
+        with:
+          name: calepin-cctp-studio-${{ matrix.platform }}
+          path: |
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.app
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+          if-no-files-found: error
