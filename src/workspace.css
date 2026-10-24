@@ -1,0 +1,365 @@
+/* En-tête : fonctions transverses (Tâches, Discussion), espace de travail actif, panneaux latéraux */
+.topbar{grid-template-columns:190px minmax(130px,1fr) auto minmax(0,1fr) auto}
+.account-area{gap:6px}
+.topbar-function{position:relative;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 11px;border:1px solid #e3e7e0;border-radius:10px;background:#fff;color:#51615a;font-size:12px;font-weight:700}
+.topbar-function:hover{background:#f4f7f3}.topbar-function.active{background:#17372e;color:#fff;border-color:#17372e}
+.topbar-function .tab-badge{margin-left:2px}
+.workspace-switcher{position:relative}
+.workspace-switcher-button{display:inline-flex;align-items:center;gap:8px;height:38px;max-width:230px;padding:0 10px;border:1px solid #e3e7e0;border-radius:10px;background:#f6f8f5;color:#20372f}
+.workspace-switcher-button>span{display:grid;text-align:left;min-width:0}.workspace-switcher-button small{font-size:9px;letter-spacing:.08em;color:#8a968f;line-height:1}
+.workspace-switcher-button b{font-size:12.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:270px;padding:8px;border:1px solid #dfe5e0;border-radius:14px;background:#fff;box-shadow:0 18px 44px rgba(20,40,34,.18);display:grid;gap:2px}
+.workspace-menu hr{border:0;border-top:1px solid #e8ece7;margin:5px 0}
+.workspace-menu-user{display:flex;align-items:center;gap:7px;margin:2px 6px 6px;font-size:11.5px;color:#7a877f;overflow-wrap:anywhere}
+.workspace-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:9px;background:transparent;text-align:left;font-size:13px;color:#20372f}
+.workspace-menu button:hover{background:#f1f5f1}.workspace-menu button.current{background:#edf4ef;font-weight:700}
+.workspace-menu button>i{width:14px;height:14px}.workspace-menu button small{display:block;font-size:11px;color:#85928b;font-weight:500}
+@media(max-width:1250px){.topbar-function span:not(.tab-badge){display:none}.workspace-switcher-button b{max-width:90px}}
+
+/* Panneaux latéraux (Tâches, Discussion) : ne font pas quitter le document en cours */
+.side-panel{position:fixed;top:70px;right:0;bottom:0;z-index:55;width:min(440px,100vw);display:flex;flex-direction:column;background:#fff;border-left:1px solid #dfe5e0;box-shadow:-18px 0 44px rgba(20,40,34,.16)}
+.side-panel[hidden]{display:none}
+.side-panel>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid #e8ece7}
+.side-panel>header h2{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase}.side-panel>header button{border:0;background:transparent;color:#5f6d66;border-radius:8px;padding:6px}
+.side-panel-body{flex:1;min-height:0;overflow:auto;padding:14px 18px}
+.side-panel-wide{width:min(560px,100vw)}
+.side-panel-body .team-chat,.side-panel-body [data-chat]{min-height:0}
+.side-panel-footer{padding:12px 18px;border-top:1px solid #e8ece7;display:flex;justify-content:space-between;gap:10px}
+.panel-task{display:grid;gap:3px;padding:11px 12px;margin-bottom:8px;border:1px solid #e3e9e5;border-radius:12px;background:#fbfcfb;cursor:pointer}
+.panel-task:hover{border-color:#b8c8bf;background:#fff}.panel-task b{font-size:13.5px}.panel-task small{color:#74827b;font-size:12px}
+.panel-task .due{font-weight:700;color:#8a5a12}.panel-task .due.late{color:#c0392b}
+.panel-empty{padding:30px 10px;text-align:center;color:#74827b}
+@media(max-width:700px){.side-panel{width:100vw}}
+
+/* Page « Tâches » (Mes tâches | Équipe) */
+.tasks-page{max-width:1280px;margin:auto;padding:34px 28px 70px;display:grid;gap:16px}
+.tasks-page-tabs{display:inline-flex;gap:6px;padding:4px;background:#e9ede8;border:1px solid #dce4df;border-radius:12px;width:max-content}
+.tasks-page-tabs button{border:0;background:transparent;padding:8px 16px;border-radius:9px;font-weight:700;color:#62716a}.tasks-page-tabs button.active{background:#fff;color:#17372e;box-shadow:0 3px 12px rgba(25,54,45,.1)}
+.tasks-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.tasks-filters label{display:grid;gap:3px;font-size:11px;color:#6b7a73;font-weight:700}
+.tasks-filters select,.tasks-filters input{height:34px;border:1px solid #d5ddd8;border-radius:9px;padding:0 9px;background:#fff;font:inherit;font-size:13px}
+
+/* Bibliothèque agence dans CCTP */
+.cctp-subnav{display:inline-flex;gap:5px;margin:0 0 18px;padding:5px;border:1px solid #dce4df;border-radius:14px;background:#e9ede8}
+.cctp-subnav button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 16px;border:0;border-radius:10px;background:transparent;color:#62716a;font-weight:750}
+.cctp-subnav button.active{background:#fff;color:#17372e;box-shadow:0 3px 12px rgba(25,54,45,.1)}
+.agency-library{max-width:1120px;margin:auto;padding:0 28px 70px;display:grid;gap:16px}
+.agency-library-head h1{margin:0;font-size:30px}.agency-library-head p{margin:4px 0 0;color:#6b7a73}
+.library-sections{display:flex;flex-wrap:wrap;gap:8px}.library-sections button{border:1px solid #d5ddd8;background:#fff;border-radius:999px;padding:7px 14px;font-weight:700;color:#4f6159}
+.library-sections button.active{background:#17372e;color:#fff;border-color:#17372e}
+.library-readonly{padding:10px 14px;border-radius:10px;background:#fff7e6;color:#8a5a12;font-size:13px}
+
+/* Cartes CCTP / devis communes à l'agence */
+.project-credit{display:grid;gap:1px;margin:2px 0 4px;color:#74827b;font-size:11.5px}
+.project-credit b{color:#4f6159;font-weight:650}
+.external-badge{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#8a5a12;font-size:10.5px;font-weight:800}
+.restricted-badge{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:#eef1ec;color:#52665e;font-size:10.5px;font-weight:800}
+
+/* Reprise des documents personnels */
+.personal-import{display:grid;gap:10px;padding:16px 18px;margin:0 0 16px;border:1px solid #cfe0d6;border-radius:14px;background:#f3f9f5}
+.personal-import h3{margin:0;font-size:15px}.personal-import p{margin:0;color:#52665e}
+.personal-import label{display:flex;gap:9px;align-items:flex-start;font-size:13.5px}
+.personal-import ul{margin:4px 0 0 26px;padding:0;display:grid;gap:3px;font-size:13px;max-height:150px;overflow:auto}
+.personal-import footer{display:flex;gap:8px;justify-content:flex-end}
+
+/* Paramètres › Espace agence */
+.settings-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;align-items:start}
+.settings-nav{display:grid;gap:4px;position:sticky;top:12px}
+.settings-nav button{display:flex;align-items:center;gap:8px;text-align:left;border:0;background:transparent;padding:9px 12px;border-radius:10px;color:#55665e;font-weight:700}
+.settings-nav button.active{background:#fff;color:#17372e;box-shadow:0 3px 12px rgba(25,54,45,.09)}
+.settings-section{display:grid;gap:14px;padding:22px;border:1px solid #dce4df;border-radius:16px;background:#fff}
+.settings-section h2{margin:0;font-size:19px}.settings-section>p{margin:0;color:#6b7a73}
+.settings-section .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.settings-section label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#5d6e66}
+.settings-section input,.settings-section select{border:1px solid #d5ddd8;border-radius:9px;padding:9px 11px;font:inherit;font-weight:500}
+.settings-members{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.settings-members li{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border:1px solid #e3e9e5;border-radius:12px}
+.settings-members li.disabled{opacity:.6}.settings-members .who{display:grid;min-width:0}.settings-members .who small{color:#7a877f}
+.settings-members .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.settings-members button{border:1px solid #cfd9d4;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px}
+.roles-table{width:100%;border-collapse:collapse;font-size:13px}.roles-table th,.roles-table td{padding:8px 10px;border-bottom:1px solid #e8ece7;text-align:center}
+.roles-table th:first-child,.roles-table td:first-child{text-align:left}.roles-table .yes{color:#2c7a58;font-weight:800}.roles-table .no{color:#b8c1bc}
+.policy-options{display:grid;gap:8px}.policy-options label{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1px solid #e3e9e5;border-radius:12px;font-size:13.5px;color:#20372f;font-weight:600}
+.policy-options label.selected{border-color:#315f51;background:#f1f7f3}.policy-options small{display:block;color:#74827b;font-weight:500}
+.settings-notice{padding:10px 14px;border-radius:10px;background:#edf6f0;color:#2c6a4d;font-size:13px}
+@media(max-width:850px){.settings-layout{grid-template-columns:1fr}.settings-nav{position:static;grid-auto-flow:column;overflow:auto}.settings-section .grid-2{grid-template-columns:1fr}}
+
+/* Droits de modification (partage) */
+.edit-rights{display:grid;gap:10px;margin-top:6px}
+.edit-rights ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.edit-rights li label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.agency-access{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#f1f7f3;font-size:13px;color:#20372f}
+.agency-access small{display:block;color:#6b7a73}
+
+.project-comments-toggle{margin-top:8px;padding:6px 10px;font-size:12px}
+.project-comments{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;cursor:default}
+.project-comments li{display:grid;gap:2px;padding:8px 10px;border:1px solid #e1e7e3;border-radius:10px;background:#fff;font-size:12.5px;cursor:pointer}
+.project-comments li b{color:#17372e}.project-comments li em{color:#66756e;font-size:11.5px}.project-comments li span{overflow-wrap:anywhere}
+
+/* Barre d'actions sur un passage sélectionné : trois emplacements côte à côte, un seul bloc visuel */
+.sel-bar-btn{position:fixed!important;box-sizing:border-box;height:36px;display:inline-flex!important;align-items:center;justify-content:center;gap:6px;margin:0;padding:0 10px!important;border:1px solid #cfd9d4!important;border-radius:0!important;background:#fff!important;color:#17372e!important;font:700 12px Manrope,system-ui,sans-serif!important;box-shadow:0 8px 24px rgba(16,38,30,.2)!important;cursor:pointer;z-index:96;white-space:nowrap}
+.sel-bar-btn:hover{background:#f1f6f3!important}
+.sel-bar-btn.similar-launch{width:138px;border-radius:12px 0 0 12px!important}
+.sel-bar-btn.comment-float{width:122px;border-left:0!important}
+.sel-bar-btn.cctp-chat-discuss{width:42px;border-left:0!important;border-radius:0 12px 12px 0!important}
+.sel-bar-menu{position:fixed;z-index:97;width:210px;display:grid;padding:5px;background:#fff;border:1px solid #cfd9d4;border-radius:12px;box-shadow:0 14px 36px rgba(16,38,30,.25)}
+.sel-bar-menu button{display:flex;align-items:center;gap:8px;border:0;background:transparent;border-radius:8px;padding:9px 10px;font:600 12.5px Manrope,system-ui,sans-serif;color:#1d2b25;text-align:left;cursor:pointer}.sel-bar-menu button:hover{background:#eef3f0}
+
+/* Modèles d'ouvrages */
+.template-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:6px 0 14px}.template-toolbar label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#66756e}.template-toolbar select{border:1px solid #cfd9d4;border-radius:10px;padding:9px 10px;font:500 13px Manrope,system-ui,sans-serif;background:#fff;min-width:150px}.template-toolbar .library-search{flex:1 1 240px}
+.template-list{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px}.template-list li{display:flex;gap:12px;align-items:center;padding:13px 16px;background:#fff;border:1px solid #dce5df;border-radius:14px}.template-list li.archived{opacity:.7}
+.template-main{display:grid;gap:3px;flex:1;min-width:0}.template-main b{font-size:14.5px;color:#17372e}.template-main span{font-size:12.5px;color:#41524a}.template-main small{font-size:11.5px;color:#829089}
+.template-status{font-style:normal;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px}.template-status.active{background:#e1f1e8;color:#216445}.template-status.archived{background:#eceeed;color:#66756e}
+.template-actions{position:relative}.template-actions>button{border:1px solid #cfd9d4;background:#fff;border-radius:10px;padding:6px 8px;cursor:pointer}.template-menu{position:absolute!important;right:0;top:38px;left:auto!important;width:200px}
+.template-versions{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}.template-versions li{display:grid;gap:2px;padding:8px 10px;border:1px solid #e1e7e3;border-radius:10px;background:#fff}.template-versions span,.template-versions small{font-size:12px;color:#66756e}
+
+.template-editor{max-height:90vh;overflow:auto}.template-editor-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}.template-editor-head small{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#66756e}.template-editor-head h3{margin:2px 0 0}
+.template-editor-step{display:grid;gap:12px}.template-editor-step>label{display:grid;gap:5px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#66756e}.template-editor-step input,.template-editor-step select,.template-editor-step textarea{border:1px solid #cfd9d4;border-radius:10px;padding:10px 12px;font:500 13px Manrope,system-ui,sans-serif;background:#fff;text-transform:none;letter-spacing:0;color:#1d2b25;width:100%;box-sizing:border-box}
+.template-questions{display:grid;gap:10px;max-height:46vh;overflow:auto;padding-right:4px}.template-questions details{border:1px solid #dce5df;border-radius:12px;background:#fbfcfb;padding:8px 12px}.template-questions summary{cursor:pointer;font-weight:700;font-size:13px;color:#17372e}.template-questions summary em{font-style:normal;color:#829089;font-weight:600}
+.template-question{display:grid;gap:5px;padding:10px 0;border-top:1px solid #edf0ed}.template-question b{font-size:13px;font-weight:650}.template-multi{display:flex;flex-wrap:wrap;gap:6px 14px}.template-multi label{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;text-transform:none;letter-spacing:0;font-weight:500;color:#1d2b25}.template-multi input{width:auto}.template-unsupported{color:#9a6a00;font-size:11.5px}
+.template-editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.template-project-only{display:inline-block;color:#7a5a12;background:#fff3d6;border:1px solid #ecd391;border-radius:999px;padding:2px 10px;font:700 11.5px Manrope,system-ui,sans-serif;width:max-content}
+
+.pl-work-context [data-save-as-template]{margin-left:8px}
+.template-preview{display:grid;gap:6px;margin-top:10px;padding:12px 14px;background:#f6f9f7;border:1px solid #dbe5df;border-radius:12px}.template-preview p{margin:0;font-size:13px}.template-preview .secondary{justify-self:start}
+.template-preview-detail h4{margin:10px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#66756e}.template-preview-detail ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}.template-preview-detail li.excluded{color:#7a5a12}.template-preview-detail span{color:#41524a}
+
+.pl-create-mode{display:flex;gap:8px;margin:8px 0 12px}.pl-create-mode button{border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:7px 14px;font:700 12.5px Manrope,system-ui,sans-serif;cursor:pointer}.pl-create-mode button.on{background:#17382f;color:#fff;border-color:#17382f}
+.pl-template-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}.pl-template-list li{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #dce5df;border-radius:12px;background:#fff}.pl-template-list li div{display:grid;gap:2px}.pl-template-list small{color:#66756e}.pl-template-error{color:#a33}
+.pl-template-origin{display:inline-flex;gap:6px;align-items:center;background:#eaf2ed;border:1px solid #cfe0d6;color:#2d5d4c;border-radius:999px;padding:4px 11px;font-size:12px}
+
+/* Page Projets : état synthétique des trois briques sur chaque carte */
+.project-bricks{list-style:none;margin:10px 0 4px;padding:0;display:grid;gap:7px}.project-bricks li{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12.5px;padding:7px 10px;background:#f6f9f7;border:1px solid #e3ebe6;border-radius:10px}.project-bricks li b{font-size:12px;color:#17372e}.project-bricks li span{color:#41524a;text-align:right}.project-bricks li.attention{background:#fff3d6;border-color:#ecd391}.project-bricks li.attention b{color:#7a5a12}
+
+.project-points{margin:0 0 18px;padding:16px 20px;background:#fff;border:1px solid #dce5df;border-radius:16px}.project-points h2{margin:0 0 8px;font-size:15px;color:#17372e}.project-points ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}.project-points li button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:10px;font:600 13.5px Manrope,system-ui,sans-serif;color:#1d2b25;cursor:pointer}.project-points li button:hover{background:#f1f6f3}.project-points li button svg{margin-left:auto;color:#829089}.project-points-empty{display:flex;gap:8px;align-items:center;margin:0;color:#2d5d4c;font-weight:600}
+
+.project-breadcrumb{display:flex;align-items:center;gap:8px;min-width:0}.project-breadcrumb button{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:#41524a;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer;padding:4px 6px;border-radius:8px;white-space:nowrap}.project-breadcrumb button:hover{background:#eef3f0;color:#17372e}.project-breadcrumb span{color:#9aa8a1}.project-breadcrumb b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:#17372e}
+
+.reuse-summary{display:grid;gap:3px;margin:0 0 12px;padding:12px 14px;background:#f6f9f7;border:1px solid #dbe5df;border-radius:12px}.reuse-summary span{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#66756e}.reuse-summary b{font-size:15px;color:#17372e}.reuse-summary em{font-style:normal;font-size:13px;color:#2d5d4c;font-weight:700}.reuse-summary small{color:#66756e}
+
+/* CCTP : accès discret à la Bibliothèque agence (plus de grand sélecteur Documents | Bibliothèque) */
+.cctp-home-bar{display:flex;justify-content:flex-end;max-width:1180px;margin:22px auto 0;padding:0 28px}.cctp-library-link{display:inline-flex;align-items:center;gap:7px;border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:7px 14px;font:700 12.5px Manrope,system-ui,sans-serif;color:#2d5d4c;cursor:pointer}.cctp-library-link:hover{background:#eef3f0}
+.library-note{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:12px;color:#66756e}
+.library-global-search{max-width:420px;margin:0 0 14px}
+
+.draft-status-line{margin:4px 0 0;font-size:13.5px;color:#66756e;font-weight:600}.draft-more{position:relative}.draft-more-button{padding:9px 11px;position:relative}.draft-more-button .task-badge{position:absolute;top:-6px;right:-6px}.draft-more-menu{position:absolute;right:0;left:auto;top:44px;width:230px;z-index:60}
+
+/* « Comment souhaitez-vous démarrer ? » : deux méthodes principales, les autres derrière « Autres méthodes ▾ » */
+.chapter-start-more-toggle{display:inline-flex;align-items:center;gap:6px;margin:14px auto 0;border:0;background:transparent;color:#2d5d4c;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer;padding:6px 10px;border-radius:10px}.chapter-start-more-toggle:hover{background:#eef3f0}
+.chapter-start .chapter-start-secondary{margin-top:10px}.chapter-start .chapter-start-secondary:not(.open){display:none!important}
+
+/* UX-10 : le document est prioritaire ; l'assistant se réduit et la colonne devient plus étroite */
+.assistant-workspace{grid-template-columns:minmax(560px,1.7fr) minmax(340px,.7fr)!important;position:relative}
+.assistant-workspace.assistant-collapsed{grid-template-columns:1fr!important}.assistant-workspace.assistant-collapsed .ai-workbench{display:none}.assistant-workspace.assistant-collapsed .chapter-preview-panel{grid-column:1!important}
+.assistant-reopen{position:absolute;top:8px;right:8px;z-index:5;display:inline-flex;align-items:center;gap:6px;border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:7px 14px;font:700 12.5px Manrope,system-ui,sans-serif;color:#2d5d4c;cursor:pointer;box-shadow:0 6px 18px rgba(16,38,30,.12)}
+.assistant-collapse{margin-left:auto;border:1px solid #dce5df;background:#fff;border-radius:10px;padding:6px 8px;cursor:pointer;color:#52625b}.assistant-collapse:hover{background:#eef3f0}
+.project-nav-identity.project-breadcrumb{width:auto;max-width:320px;flex-direction:row;flex-wrap:nowrap}.project-breadcrumb b{flex:0 1 auto;min-width:0}
+
+/* Estimations (UX-13 à UX-15) : liste épurée, cartes simplifiées, en-tête DPGF avec menu ••• */
+.quotes-simple-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 18px}.quotes-simple-head h1{margin:0;font:650 28px Manrope,system-ui,sans-serif;color:#17372e}.quotes-simple-head .quotes-search{flex:1 1 280px;max-width:420px}
+.dpgf-more{position:relative}.dpgf-more-button{padding:9px 11px!important}.dpgf-more-menu{position:absolute;right:0;left:auto;top:44px;width:200px;z-index:60}.dpgf-more-menu button{white-space:nowrap}
+
+.price-references{margin-top:14px;display:grid;gap:10px}.price-table-wrap{overflow:auto;border:1px solid #dce5df;border-radius:12px;background:#fff;max-height:52vh}.price-table{width:100%;border-collapse:collapse;font-size:13px}.price-table th{position:sticky;top:0;background:#f0f4f1;text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#52625a}.price-table td{padding:9px 12px;border-top:1px solid #edf0ed;color:#1d2b25}.price-table td:nth-child(3){font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Consultation (UX-19) : Suivi | Analyse | Échanges | Plus ▾ */
+.ops-primary-tabs .ops-more{position:relative}.ops-more-menu{position:absolute;left:0;top:40px;width:170px;z-index:60}
+.ops-secondary-tabs{display:flex;gap:6px;margin:8px 0 12px}.ops-secondary-tabs button{border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:6px 14px;font:700 12.5px Manrope,system-ui,sans-serif;cursor:pointer;color:#41524a}.ops-secondary-tabs button.active{background:#17382f;color:#fff;border-color:#17382f}
+
+.ops-summary{display:grid;gap:2px;font-size:13px}.ops-summary b{color:#17372e}.ops-summary span{color:#66756e}.ops-cta-row{display:flex;align-items:center;gap:8px}.consult-more{position:relative}.consult-more>button{border:1px solid #cfd9d4;background:#fff;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:800}.consult-more-menu{position:absolute;right:0;left:auto;top:42px;width:250px;z-index:60}.consult-more-menu .danger{color:#a33}
+.consult-banner .banner-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Documents du projet (UX-31) */
+.documents-import{display:flex;gap:10px;align-items:flex-end}.documents-import label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#66756e}.documents-import select{border:1px solid #cfd9d4;border-radius:10px;padding:9px 10px;font:500 13px Manrope,system-ui,sans-serif;background:#fff;text-transform:none;letter-spacing:0}
+.documents-toolbar{display:flex;gap:16px;align-items:center;margin:14px 0 10px}.documents-toolbar .library-search{flex:1;max-width:420px}
+.documents-categories{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.documents-categories button{border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:6px 13px;font:700 12.5px Manrope,system-ui,sans-serif;color:#41524a;cursor:pointer}.documents-categories button.active{background:#17382f;color:#fff;border-color:#17382f}.documents-categories b{margin-left:4px;opacity:.75}
+.documents-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}.documents-list li{display:flex;gap:12px;align-items:center;padding:11px 14px;background:#fff;border:1px solid #dce5df;border-radius:12px}.documents-list li.archived{opacity:.65}.documents-list .doc-icon{color:#2d5d4c}.documents-list .doc-main{flex:1;min-width:0;display:grid;gap:2px}.documents-list .doc-main b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.documents-list .doc-main small{color:#829089}
+.documents-list select{border:1px solid #cfd9d4;border-radius:10px;padding:7px 9px;font:500 12.5px Manrope,system-ui,sans-serif;background:#fff}.documents-list .doc-action{display:inline-flex;gap:6px;align-items:center;border:1px solid #cfd9d4;background:#fff;border-radius:10px;padding:7px 11px;font:700 12.5px Manrope,system-ui,sans-serif;color:#2d5d4c;text-decoration:none;cursor:pointer}
+.stage-next{display:block;margin-top:6px;font-size:12px;color:#7a5a12;font-weight:700}.project-bricks li.next{background:#eaf2ed;border-color:#cfe0d6}
+.project-breadcrumb .crumb-step{display:inline-flex;gap:8px;align-items:center;min-width:0}.project-breadcrumb [data-breadcrumb-project],.project-breadcrumb [data-breadcrumb-step]{font-weight:650}.project-nav-identity.project-breadcrumb{max-width:520px}
+.dpgf-breadcrumb{display:flex;gap:8px;align-items:center;white-space:nowrap}.dpgf-breadcrumb button{border:0;background:transparent;color:#41524a;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer;padding:4px 6px;border-radius:8px}.dpgf-breadcrumb button:hover{background:#eef3f0}.dpgf-breadcrumb span{color:#9aa8a1}.dpgf-breadcrumb b{font-size:14px;color:#17372e}
+
+/* Aides de première utilisation (UX-29) */
+.help-onboarding{position:relative;display:inline-block}.help-button{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:6px 12px;font:700 12.5px Manrope,system-ui,sans-serif;color:#41524a;cursor:pointer}.help-button:hover{background:#eef3f0}
+.help-card{position:absolute;z-index:70;top:40px;left:0;width:min(420px,86vw);background:#fff;border:1px solid #cfe0d6;border-radius:14px;padding:14px 16px;box-shadow:0 14px 36px rgba(16,38,30,.22);display:grid;gap:8px}.help-card.first-time{border-color:#9ec4b2;background:#f4faf6}
+.help-card header{display:flex;justify-content:space-between;align-items:center;gap:8px}.help-card header b{font-size:14px;color:#17372e}.help-card header button{border:0;background:transparent;cursor:pointer;color:#66756e}.help-card ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px;color:#2b3b35}.help-card .primary{justify-self:start;padding:7px 14px}
+.consult-title{display:flex;align-items:center;gap:14px}.tasks-page-help{display:flex;justify-content:flex-end;max-width:1180px;margin:18px auto 0;padding:0 28px}.quotes-simple-head .help-onboarding{margin-right:auto;margin-left:6px}
+.help-card.first-time{position:fixed;top:auto;right:auto;left:20px;bottom:20px;width:min(360px,88vw);z-index:80}
+.row-more{position:relative;display:inline-block}.row-more-menu{position:absolute;right:0;left:auto;top:36px;width:240px;z-index:60}.row-more-menu .danger{color:#a33}.company-actions{white-space:nowrap}
+
+/* Cartes réservées aux objets métier (UX-25) : à l'intérieur d'une carte projet, les briques sont des lignes séparées, pas des cartes. */
+.project-bricks{gap:0;border-top:1px solid #e3ebe6}
+.project-bricks li,.project-bricks li.attention,.project-bricks li.next{background:transparent;border:0;border-bottom:1px solid #e3ebe6;border-radius:0;padding:8px 2px}
+.project-bricks li.attention b{color:#9a6b00}.project-bricks li.attention span{color:#7a5a12;font-weight:700}.project-bricks li.next b{color:#1f5a40}
+.project-bricks-progress{background:transparent!important;border:0!important;border-radius:0!important;padding-left:2px!important;padding-right:2px!important}
+.consult-breadcrumb{margin:0 0 10px}
+
+/* Éditeur (UX-10) : titre + [Notice][CCTP détaillé] à gauche ; Questionnaire · Comparer · ••• à droite. */
+.chapter-preview-status .editor-actions{display:flex;align-items:center;gap:8px;margin-left:auto}.editor-more-menu{width:260px;top:38px}
+
+/* Discussion : volet vertical à droite (liste des discussions) ; la conversation s'ouvre dans une fenêtre flottante en bas, façon Facebook / Messenger. */
+.side-panel-rail{width:min(380px,100vw)}
+.side-panel-rail .side-panel-body{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.side-panel-rail .side-panel-body[hidden]{display:none}
+.side-panel-rail .team-chat.is-rail{grid-template-columns:1fr;height:100%;min-height:0;border:0;border-radius:0;flex:1}
+.side-panel-rail .team-chat.is-rail .chat-list{border-right:0;max-height:none;overflow:auto}
+.team-chat.is-rail[data-rail-view="list"] .chat-main{display:none}
+.team-chat.is-rail[data-rail-view="chat"] .chat-main{position:fixed;right:calc(min(380px,100vw) + 16px);bottom:0;z-index:58;width:min(360px,calc(100vw - 420px));min-width:300px;height:min(540px,calc(100vh - 90px));background:#fff;border:1px solid #cfd9d4;border-bottom:0;border-radius:14px 14px 0 0;box-shadow:0 10px 36px rgba(20,40,34,.28);overflow:hidden}
+.team-chat.is-rail[data-rail-min] .chat-main{height:52px}
+.team-chat.is-rail[data-rail-min] .chat-main>*:not(.chat-head):not(.chat-window-controls){display:none}
+.team-chat.is-rail .chat-head{padding:10px 84px 10px 14px;flex-wrap:nowrap}
+.team-chat.is-rail .chat-head h2{font-size:15px}
+.chat-window-controls{position:absolute;top:8px;right:8px;display:flex;gap:2px;z-index:3}
+.chat-window-controls button{border:0;background:transparent;color:#41524a;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;cursor:pointer}.chat-window-controls button:hover{background:#eef3f0}
+
+/* Navigation globale : Projets + menu « Vues agence » */
+.agency-views{position:relative;display:inline-flex}
+.agency-views>button{display:inline-flex;align-items:center;gap:7px}
+.agency-views-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:270px;z-index:80;background:#fff;border:1px solid #dfe5e0;border-radius:14px;box-shadow:0 14px 36px rgba(20,40,34,.18);padding:8px;display:grid;gap:2px}
+.agency-views-menu[hidden]{display:none}
+.agency-views-menu p{margin:2px 8px 6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#74827b}
+.agency-views-menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;border-radius:10px;padding:9px 10px;cursor:pointer;color:#17372e;font:700 13.5px Manrope,system-ui,sans-serif}
+.agency-views-menu button:hover{background:#eef3f0}.agency-views-menu button.current{background:#e4f0e8}
+.agency-views-menu button span{display:grid;gap:1px;flex:1}.agency-views-menu button small{font-weight:500;font-size:11.5px;color:#74827b}
+
+/* Bibliothèque de prix (estimations) : champ de recherche lisible, plus de carte dans la carte ni de titre répété. */
+.price-library .price-references .library-search{display:flex;width:100%;max-width:460px;height:40px;margin:14px 0 12px;box-sizing:border-box}
+.price-library .library-search input{flex:1;min-width:0;height:100%;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:0;background:transparent!important;outline:0}
+.price-library .upload{display:inline-flex;align-items:center;gap:8px;margin:2px 0 4px}
+.settings-section .price-library,.agency-library .price-library{background:transparent;border:0;border-radius:0;padding:0;margin:0;box-shadow:none}
+.settings-section .price-library>h3{display:none}
+
+/* En-tête Estimation / DPGF compact (plus de grande carte) : titre, sous-titre, enregistrement discret ; actions sur la même ligne que le titre. */
+.dpgf-page .dpgf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:0 0 12px;margin:0 0 6px;background:transparent;border:0;border-radius:0;box-shadow:none;flex-wrap:wrap}
+.dpgf-top .dpgf-heading{display:grid;gap:2px;min-width:0}
+.dpgf-top .dpgf-heading h1{margin:0;font-size:26px;line-height:1.15}
+.dpgf-top .dpgf-heading p{margin:0;color:#52665e;font-size:14px}
+.dpgf-top .dpgf-autosave{color:#74827b;font-size:12px;font-weight:600}
+.dpgf-top .dpgf-back{justify-self:start;border:0;background:transparent;color:#41524a;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer;padding:2px 0;display:inline-flex;align-items:center;gap:6px}
+.dpgf-page .dpgf-top .dpgf-actions{grid-column:auto;border-top:0;padding-top:0;margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+@media(max-width:850px){.dpgf-page .dpgf-top{display:grid}.dpgf-page .dpgf-top .dpgf-actions{margin-left:0;justify-content:flex-start}}
+.draft-more-menu .menu-badge{position:static;margin-left:auto;flex:0 0 auto}
+.draft-more-menu button[data-cctp-tasks]{display:flex;align-items:center;gap:8px;width:100%}
+
+/* Estimation > Documents du projet */
+.estimate-documents{background:#fff;border-radius:16px;width:min(680px,94vw);max-height:86vh;overflow:auto;padding:18px 22px;box-shadow:0 24px 60px rgba(20,40,34,.3);display:grid;gap:10px}
+.estimate-documents>header{display:flex;justify-content:space-between;align-items:center}.estimate-documents h2{margin:0;font-size:18px}.estimate-documents h3{margin:8px 0 0;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#52665e}.estimate-documents h3 small{background:#eef3f0;border-radius:99px;padding:1px 8px;margin-left:6px}
+.estimate-documents>header button{border:0;background:transparent;cursor:pointer;color:#5f6d66}
+.estimate-documents-import{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.estimate-documents-import label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;color:#66756e}
+.estimate-documents .documents-list li.linked{border-color:#9ec4b2;background:#f4faf6}
+
+/* Bibliothèque agence : deux domaines (CCTP | Estimation), références de prix, règles de chiffrage */
+.library-groups{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:center}
+.library-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.library-group-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74827b;margin-right:2px}
+.price-references-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.price-references-head h2{margin:0 0 4px}.price-references-head p{margin:0}
+.price-references-actions{display:flex;gap:8px;flex-wrap:wrap}
+.price-filters{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:14px 0 10px}.price-filters select,.price-filters input[type=date]{height:36px;border:1px solid #d5ddd8;border-radius:10px;padding:0 10px;background:#fff;font:inherit;font-size:13px}
+.price-date{display:flex;align-items:center;gap:6px;font-size:12px;color:#66756e}
+.price-message{margin:8px 0;font-size:12.5px;color:#1d6a43}
+.price-legacy{margin-top:14px;font-size:12.5px;color:#52665e}.price-legacy summary{cursor:pointer;font-weight:700}
+.origin-badge.o-IMPORTED_QUOTE{background:#fff3d6;color:#7a5a08}.origin-badge.o-MOE_ESTIMATE{background:#e6edf7;color:#2a4a78}.origin-badge.o-AWARDED_OFFER{background:#dff1e6;color:#1d6a43}.origin-badge.o-COMPANY_OFFER{background:#f1e6f7;color:#5a2a78}
+.price-doc{color:#74827b}
+.price-modal label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;color:#66756e}.price-modal input,.price-modal select{font:inherit;font-size:14px;text-transform:none;font-weight:500}
+.price-modal-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.price-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin:6px 0 0}
+.price-import-lines{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:46vh;overflow:auto}
+.price-import-lines li{display:grid;grid-template-columns:22px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid #e3e9e5;border-radius:10px;font-size:13px}.price-import-lines li.ok .mark{color:#1d6a43;font-weight:800}.price-import-lines li.todo{border-color:#ecd391;background:#fff9e8}.price-import-lines li.todo .mark{color:#9a6b00;font-weight:800}
+.price-import-lines li[hidden]{display:none}
+.pricing-lot h3{margin:14px 0 6px;font-size:14px}.pricing-lot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pricing-lot li{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:10px 12px;border:1px solid #e3e9e5;border-radius:12px;background:#fbfcfb}
+.pricing-lot .who{display:grid;gap:2px}.pricing-lot .who small{color:#74827b}.pricing-lot .actions{display:flex;gap:8px;align-items:center}.pricing-lot select{height:36px;border:1px solid #d5ddd8;border-radius:10px;padding:0 10px;background:#fff;font:inherit;font-size:13px}
+
+/* Estimation : suggestions agence, étiquette de règle, règles du projet */
+.agency-suggestion{border:0;background:#eaf2ec;color:#1d6a43;border-radius:8px;padding:3px 8px;font:700 11px Manrope,system-ui,sans-serif;cursor:pointer;margin-top:4px;display:inline-block}
+.agency-refs span{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.agency-refs em{font-style:normal;font-weight:800}.agency-refs button{border:1px solid #cfd8d0;background:#fff;border-radius:7px;padding:2px 7px;font:inherit;font-size:11px;cursor:pointer}
+.save-reference{border:1px solid #cfd8d0;background:#fff;border-radius:8px;padding:3px 8px;font:700 11px Manrope,system-ui,sans-serif;cursor:pointer;margin-top:4px;display:block}
+.rule-tag{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}.rule-tag em{font-style:normal;font-size:11px;font-weight:800;color:#7a5a12;background:#fff3d6;border-radius:99px;padding:2px 8px}
+.rule-tag button{border:0;background:transparent;color:#41524a;font:700 11px Manrope,system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:0}
+.rule-choice{display:grid;gap:4px;flex-basis:100%;font-size:12px;background:#fbfcfb;border:1px solid #e3e9e5;border-radius:10px;padding:8px 10px}
+.project-rules label{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #edf0ed;text-transform:none;font-weight:500;color:inherit}.project-rules label span{display:grid;gap:2px}.project-rules label small{color:#74827b;font-size:11.5px}.project-rules .rule-override{color:#7a5a12;font-weight:700}
+.project-rules select{height:36px;border:1px solid #d5ddd8;border-radius:10px;padding:0 10px;background:#fff;font:inherit;font-size:13px;max-width:290px}
+.reference-facts{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;margin:0}.reference-facts dt{font-weight:800;font-size:12px;color:#66756e}.reference-facts dd{margin:0}
+
+/* Provenance des prix, synthèse des références, historique des règles */
+.agency-refs .ref-prov{flex-basis:100%;color:#52665e;font-size:11px}.agency-refs .ref-match{background:#eef3f0;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;color:#41524a}
+.agency-refs [data-devis-agency-summary]{display:block;margin-bottom:6px}
+.tag.provenance{background:#eaf2ec;color:#1d6a43;white-space:normal;display:inline-block;line-height:1.35}
+.rules-outdated{display:flex;gap:10px;align-items:center;justify-content:space-between;background:#fff3d6;border:1px solid #ecd391;border-radius:10px;padding:8px 12px;font-size:12.5px}
+.rule-history{font-size:11.5px;color:#52665e}.rule-history summary{cursor:pointer}.rule-history ol{margin:4px 0 0;padding-left:18px}
+
+/* Fermer le volet Discussion ne ferme pas la conversation ouverte : seule la liste se replie, la fenêtre de chat reste en bas à droite. */
+.side-panel-rail[hidden]{display:flex!important;width:0;min-width:0;border:0;background:transparent;box-shadow:none;pointer-events:none;overflow:visible}
+.side-panel-rail[hidden]>header,.side-panel-rail[hidden]>nav,.side-panel-rail[hidden] .chat-list,.side-panel-rail[hidden] [data-discussion-projects]{display:none!important}
+.side-panel-rail[hidden] .side-panel-body,.side-panel-rail[hidden] .team-chat.is-rail{background:transparent;border:0;overflow:visible}
+.side-panel-rail[hidden] .team-chat.is-rail[data-rail-view="chat"] .chat-main{right:16px;pointer-events:auto}
+
+/* Menu des espaces de travail (Agence ▾) : carte plus aérée, espaces en liste avec pastille, actions séparées */
+.workspace-menu{width:320px;padding:10px;border-radius:18px;border:1px solid #e1e8e3;box-shadow:0 24px 60px rgba(20,40,34,.2);gap:4px}
+.workspace-menu-user{margin:2px 8px 8px;padding-bottom:10px;border-bottom:1px solid #edf1ee;font-size:12px;color:#66756e}
+.workspace-menu button{padding:10px 12px;border-radius:12px;font-size:13.5px;font-weight:600;line-height:1.25}
+.workspace-menu button:hover{background:#f1f6f3}
+.workspace-menu button.current{background:#e8f3ec;color:#17372e}
+.workspace-menu button>span{display:grid;gap:2px;flex:1;min-width:0}.workspace-menu button small{font-size:11.5px;color:#7a877f;font-weight:500}
+.workspace-menu button svg{flex:0 0 auto;color:#41524a}.workspace-menu button.current svg{color:#1d6a43}
+.workspace-menu hr{margin:6px 4px;border-top-color:#edf1ee}
+.project-nav-library{margin-left:auto;display:inline-flex;align-items:center;gap:7px;border:1px solid #d5ddd8;background:#fff;border-radius:999px;padding:7px 14px;font:700 12.5px Manrope,system-ui,sans-serif;color:#41524a;cursor:pointer}.project-nav-library:hover{background:#eef3f0}
+
+/* Création d'un modèle d'ouvrage, étape 2 : recherche pleine largeur, questions lisibles, barre d'actions fixe */
+.template-editor{display:flex;flex-direction:column;max-height:88vh}
+.template-editor-step[data-template-step="2"]{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
+.template-editor .library-search{width:100%;max-width:none;height:42px;margin:0;box-sizing:border-box;flex:0 0 auto}
+.template-editor .library-search input{flex:1;min-width:0;height:100%;border:0!important;box-shadow:none!important;padding:0!important;background:transparent!important;outline:0}
+.template-editor .template-questions{flex:1;min-height:0;overflow:auto;display:grid;gap:12px;padding-right:4px}
+.template-editor .template-question{padding:12px 14px;border:1px solid #e3e9e5;border-radius:12px;background:#fff}
+.template-editor .template-project-only{display:inline-block;margin-top:6px}
+.template-editor-actions{position:sticky;bottom:0;background:#fff;padding-top:12px;border-top:1px solid #edf1ee;margin-top:8px;justify-content:flex-end;gap:8px}
+.workspace-menu button>span{text-align:left}.workspace-menu button>span b{font-weight:700}
+.template-editor .library-search{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;padding:0 14px}
+.template-editor .library-search input{display:block;width:100%}
+.template-editor-actions{background:inherit}
+
+/* Clauses agence : bibliothèque, tiroir d'insertion, provenance dans le CCTP */
+.clauses-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.clauses-head h2{margin:0 0 4px}.clauses-head p{margin:0;color:#52665e;font-size:13px}.clauses-head small{display:block;color:#74827b}
+.clause-lots{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}.clause-lots button{border:1px solid #d5ddd8;background:#fff;border-radius:999px;padding:6px 12px;font:700 12.5px Manrope,system-ui,sans-serif;color:#4f6159;cursor:pointer}.clause-lots button.active{background:#17372e;color:#fff;border-color:#17372e}.clause-lots button b{font-weight:700;opacity:.7;margin-left:4px}
+.clause-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.clause-list li{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px 16px;border:1px solid #e3e9e5;border-radius:14px;background:#fff}.clause-list li.archived{opacity:.65}
+.clause-main{display:grid;gap:3px;min-width:0}.clause-main b{font-size:15px}.clause-meta,.clause-status{color:#66756e;font-size:12.5px}
+.clause-tags{display:flex;gap:6px;flex-wrap:wrap}.clause-tags span{background:#eef3f0;border-radius:99px;padding:1px 8px;font-size:11px;color:#41524a}
+.clause-badge{border-radius:99px;padding:1px 8px;font-size:11px;font-weight:800;background:#eef3f0;color:#41524a}.clause-badge.s-VALIDATED{background:#dff1e6;color:#1d6a43}.clause-badge.s-PENDING_VALIDATION{background:#fff3d6;color:#7a5a12}.clause-badge.s-DRAFT{background:#e6edf7;color:#2a4a78}.clause-badge.s-ARCHIVED{background:#eceeea;color:#52665e}
+.clause-list .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.clause-list .actions button,.clause-versions .actions button,.clause-drawer .actions button,.clause-popover .actions button{border:1px solid #cfd8d0;background:#fff;border-radius:9px;padding:5px 10px;font:700 12px Manrope,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.clause-list .actions button.primary,.clause-drawer .actions button.primary{background:#17372e;color:#fff;border-color:#17372e}
+.clause-modal{width:min(720px,94vw)}.clause-text{margin:0;padding:12px 14px;border-left:3px solid #9ec4b2;background:#f6faf7;white-space:pre-wrap;font-size:13.5px;border-radius:0 10px 10px 0}
+.clause-versions{list-style:none;margin:0;padding:0;display:grid;gap:8px}.clause-versions li{border:1px solid #e3e9e5;border-radius:10px;padding:10px 12px;display:grid;gap:3px}.clause-versions li.proposed{border-color:#ecd391;background:#fff9e8}.clause-versions p{margin:4px 0 0;white-space:pre-wrap;font-size:13px}
+.clause-drawer{position:fixed;top:70px;right:0;bottom:0;width:min(400px,100vw);z-index:64;background:#fff;border-left:1px solid #dfe5e0;box-shadow:-18px 0 44px rgba(20,40,34,.16);display:flex;flex-direction:column;padding:0 0 12px}
+.clause-drawer>header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #e8ece7}.clause-drawer>header h2{margin:0;font-size:14px;text-transform:uppercase;letter-spacing:.06em}.clause-drawer>header button{border:0;background:transparent;cursor:pointer}
+.clause-drawer .library-search{margin:12px 18px;width:auto;max-width:none}.clause-drawer-body{flex:1;overflow:auto;padding:0 18px;display:grid;gap:14px;align-content:start}
+.clause-drawer-body h3{margin:6px 0;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:#66756e}.clause-drawer-body ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.clause-drawer-body li{border:1px solid #e3e9e5;border-radius:12px;padding:10px 12px;display:grid;gap:3px}.clause-drawer-body small{color:#66756e}
+.clause-drawer footer{padding:10px 18px 0}
+[data-agency-clause]{background:rgba(31,106,67,.06);border-bottom:1px dotted #5c8f77;cursor:pointer}
+.clause-popover{position:fixed;z-index:80;width:min(360px,92vw);background:#fff;border:1px solid #cfe0d6;border-radius:14px;box-shadow:0 14px 36px rgba(16,38,30,.22);padding:12px 14px;display:grid;gap:5px;font-size:13px}.clause-popover .clause-newer{margin:4px 0;background:#fff3d6;border-radius:8px;padding:6px 8px}.clause-popover .clause-newer button{border:0;background:transparent;text-decoration:underline;font-weight:700;cursor:pointer}
+.clause-compare{width:min(900px,96vw)}.clause-compare-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.clause-compare-cols p{white-space:pre-wrap;border:1px solid #e3e9e5;border-radius:10px;padding:10px 12px;margin:0;font-size:13px}
+.clause-notice{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;background:#fff;border:1px solid #cfe0d6;border-radius:12px;padding:10px 16px;box-shadow:0 14px 36px rgba(16,38,30,.22)}
+
+.clause-trigger{border:1px solid #e3e9e5;border-radius:12px;padding:10px 12px;margin:0;display:grid;gap:8px}.clause-trigger legend{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#66756e;padding:0 6px}.clause-trigger legend small{text-transform:none;font-weight:500}
+.clause-reco-flag{color:#1d6a43;font-size:12px;font-weight:700}.clause-reco-note{margin:0 0 6px;color:#66756e;font-size:12px}
+.clause-drawer-body [data-clause-recommended]{background:#f4faf6;border:1px solid #cfe0d6;border-radius:14px;padding:10px 12px}
+
+/* Faisabilité / étude initiale */
+.feasibility-page{padding:28px 28px 80px;box-sizing:border-box}.feas-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px}.feas-head h1{margin:2px 0 4px;font-size:28px}.feas-status{margin:0;color:#52665e;font-size:13px}.feas-actions{display:flex;align-items:center;gap:8px}
+.feas-empty{color:#52665e;margin:18px 0}
+.feas-tabs{display:flex;gap:4px;border-bottom:1px solid #e3e9e5;margin:14px 0 18px;flex-wrap:wrap}.feas-tabs button{border:0;background:transparent;padding:9px 14px;font:700 13.5px Manrope,system-ui,sans-serif;color:#66756e;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px}.feas-tabs button.active{color:#17372e;border-bottom-color:#17372e}
+.feas-panel{display:grid;gap:14px;max-width:980px}.feas-panel h2{margin:0}.feas-intro,.feas-note{margin:0;color:#66756e;font-size:13px}
+.feas-section{border:0;border-top:1px solid #edf1ee;padding:12px 0 0;margin:0;display:grid;gap:10px}.feas-section legend{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#66756e;padding:0 8px 0 0}
+.feas-field{display:grid;gap:5px;font-size:13px}.feas-field>span:first-child{font-weight:700;color:#17372e}.feas-field input,.feas-field select,.feas-field textarea{font:inherit;border:1px solid #d5ddd8;border-radius:10px;padding:8px 10px;background:#fff;max-width:520px}.feas-field input:disabled,.feas-field select:disabled,.feas-field textarea:disabled{background:#f4f6f4;color:#8a958f}
+.feas-multi{display:flex;flex-wrap:wrap;gap:6px 16px}.feas-field-foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:#66756e}
+.feas-provenance{color:#66756e;font-size:12px}.feas-badge{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:800;background:#eef3f0;color:#41524a}.feas-badge.s-CONFIRMED{background:#dff1e6;color:#1d6a43}.feas-badge.s-PROPOSED{background:#fff3d6;color:#7a5a12}.feas-badge.s-HYPOTHESIS{background:#e6edf7;color:#2a4a78}.feas-badge.s-MISSING{background:#eceeea;color:#52665e}.feas-badge.s-CONFLICT{background:#fbe3e0;color:#a33}
+.feas-save{display:flex;gap:12px;align-items:center}.feas-documents{border-top:1px solid #edf1ee;padding-top:14px;display:grid;gap:8px}.feas-documents h3{margin:0}.feas-doc-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.feas-upload{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfd8d0;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:700;font-size:13px}.inline-select{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#66756e}
+.feas-toolbar{display:flex;gap:12px;align-items:center}.feas-group h3{margin:6px 0;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#52665e}.feas-group h3 small{background:#eef3f0;border-radius:99px;padding:1px 8px;margin-left:6px}.feas-group ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.feas-fact{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;padding:10px 12px;border:1px solid #e3e9e5;border-radius:12px;background:#fff}.feas-fact.s-CONFLICT{border-color:#e8b4ad;background:#fff6f5}.feas-fact-main{display:grid;gap:2px}.feas-value{font-size:15px}.feas-fact-actions{display:flex;gap:6px}.feas-fact-actions button,.feas-candidate button,.feas-edit button{border:1px solid #cfd8d0;background:#fff;border-radius:9px;padding:5px 10px;font:700 12px Manrope,system-ui,sans-serif;cursor:pointer}
+.feas-conflict{flex-basis:100%;display:grid;gap:6px}.feas-candidate{display:flex;gap:10px;align-items:center}.feas-edit{display:flex;gap:8px;flex-basis:100%}.feas-edit input{flex:1;font:inherit;border:1px solid #d5ddd8;border-radius:10px;padding:7px 10px}
+.feas-hypothesis{display:grid;gap:6px}.feas-hypothesis h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#52665e}
+.feas-vigilance{padding:8px 12px;border-radius:10px;border:1px solid #e3e9e5;background:#fff}.feas-vigilance.sev-IMPORTANT{border-color:#e8b4ad;background:#fff6f5}.feas-vigilance.sev-VIGILANCE{border-color:#ecd391;background:#fff9e8}
+.feas-table{border-collapse:collapse;width:100%;max-width:640px}.feas-table th{text-align:left;font-size:11px;text-transform:uppercase;color:#66756e;padding:6px 8px}.feas-table td{padding:5px 8px;border-top:1px solid #edf1ee}.feas-table input{width:100%;font:inherit;border:1px solid #d5ddd8;border-radius:8px;padding:6px 8px;box-sizing:border-box}.feas-table tfoot td{border-top:2px solid #17372e}
+.feas-gap{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;margin:0}.feas-gap dt{font-weight:700;color:#66756e}.feas-gap dd{margin:0}
+.feas-notice{white-space:pre-wrap;background:#fbfcfb;border:1px solid #e3e9e5;border-radius:12px;padding:16px 18px;font:14px/1.55 Georgia,serif;margin:0}
+.feas-check{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:10px 12px;border:1px solid #e3e9e5;border-radius:12px;background:#fff;flex-wrap:wrap}.feas-check div{display:grid;gap:2px}.feas-check small{color:#66756e}.feas-check-actions{display:flex;gap:8px}.feas-check select{font:inherit;font-size:13px;border:1px solid #d5ddd8;border-radius:9px;padding:6px 8px;background:#fff}
+.feas-hints{background:#fff9e8;border:1px solid #ecd391;border-radius:12px;padding:10px 14px;display:grid;gap:4px}.feas-hints ul{margin:0;padding-left:18px}.feas-conclusions{border:0;padding:0;margin:0;display:grid;gap:6px}.feas-conclusions legend{font-weight:800;margin-bottom:4px}
+.feas-audit{list-style:none;margin:0;padding:0;display:grid;gap:6px}.feas-audit li{display:grid;gap:1px;font-size:13px}.feas-audit small{color:#66756e}

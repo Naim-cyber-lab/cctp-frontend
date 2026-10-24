@@ -1,0 +1,16 @@
+.import-cctp-modal .reference-upload{margin-top:14px}
+.import-cctp-chosen{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#f9faf8}
+.import-cctp-chosen>span{flex:1;display:flex;flex-direction:column;min-width:0}
+.import-cctp-chosen b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.import-cctp-chosen small{color:var(--muted);font-size:9px;margin-top:2px}
+.import-cctp-chosen button{width:26px;height:26px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:#eef1ee}
+.import-cctp-name{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.import-cctp-name>span{font-size:9px;font-weight:700;color:#7c8983}
+.import-cctp-name input{padding:10px;border:1px solid var(--line);border-radius:8px}
+.import-cctp-submit{width:100%;margin-top:16px;justify-content:center;display:flex;align-items:center;gap:8px}
+.import-cctp-submit:disabled{opacity:.85}
+.import-cctp-spinner{animation:import-cctp-spin .8s linear infinite}
+@keyframes import-cctp-spin{to{transform:rotate(360deg)}}
+.import-cctp-progress{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px;padding:32px 20px;border:1px solid var(--line);border-radius:12px;background:#f9faf8;text-align:center;color:#285c4b}
+.import-cctp-progress b{font-size:12px}
+.import-cctp-progress small{color:var(--muted);font-size:10px;max-width:320px;line-height:1.5}

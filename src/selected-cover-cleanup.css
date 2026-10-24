@@ -1,0 +1,4 @@
+.selection-page:has(.cover-reconstruction-editor)>.cover-setup,
+.selection-page:has(.cover-reconstruction-editor)>.cover-template-editor{
+ display:none;
+}

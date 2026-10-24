@@ -1,0 +1,601 @@
+.cover-reconstruction-editor {
+  width: calc(100% - 48px);
+  max-width: none;
+  margin: 0 auto 24px;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.cover-reconstruction-editor > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.cover-reconstruction-editor h2 {
+  font: 600 21px Manrope;
+  margin: 6px 0;
+}
+.cover-reconstruction-editor p {
+  font-size: 10px;
+  color: var(--muted);
+  max-width: 630px;
+}
+.reconstruction-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #eef5f0;
+  border-radius: 8px;
+  color: #35654f;
+  font-size: 9px;
+  font-weight: 700;
+}
+.reconstruction-workspace {
+  display: grid;
+  grid-template-columns: minmax(720px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.reconstruction-workspace.has-comparison {
+  grid-template-columns: minmax(300px, 0.65fr) minmax(720px, 1fr);
+}
+.reconstruction-workspace.inspector-open:not(.has-comparison) {
+  grid-template-columns: minmax(720px, 1fr) 270px;
+}
+.reconstruction-workspace.has-comparison.inspector-open {
+  grid-template-columns: minmax(280px, 0.55fr) minmax(620px, 1fr) 270px;
+}
+.reconstructed-cover {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  border: 1px solid #bec7c1;
+  background: #fff;
+  box-shadow: 0 13px 35px #1f332918;
+}
+.reconstructed-shape,
+.reconstructed-item {
+  position: absolute;
+  box-sizing: border-box;
+}
+.reconstructed-shape {
+  z-index: 0;
+  pointer-events: none;
+}
+.reconstructed-shape.selected {
+  z-index: 2;
+  outline: 2px solid #3c8062;
+  outline-offset: 2px;
+}
+/* Petite poignée dans l'angle d'un cadre : c'est elle qui permet de le sélectionner (le reste du cadre reste « transparent »
+   aux clics, pour continuer à pouvoir écrire dedans). */
+.reconstructed-frame-handle {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c9d4cd;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #315f51;
+  cursor: pointer;
+  opacity: 0.55;
+  pointer-events: auto;
+}
+.reconstructed-shape:hover .reconstructed-frame-handle,
+.reconstructed-shape.selected .reconstructed-frame-handle {
+  opacity: 1;
+}
+.reconstructed-frame-toolbar {
+  pointer-events: auto;
+  left: 0;
+  gap: 8px;
+  align-items: center;
+}
+.reconstructed-frame-toolbar span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #65736d;
+  padding: 0 4px;
+}
+.reconstructed-frame-toolbar button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 11px;
+}
+.reconstructed-item {
+  z-index: 1;
+}
+.reconstructed-item.selected {
+  outline: 2px solid #3c8062;
+  outline-offset: 2px;
+}
+.reconstructed-delete {
+  position: absolute;
+  z-index: 3;
+  top: -11px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #c9432f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: 0 3px 8px #0003;
+  cursor: pointer;
+}
+.reconstructed-delete:hover {
+  background: #a8341f;
+}
+.reconstructed-resize-handle {
+  position: absolute;
+  z-index: 3;
+  right: -6px;
+  bottom: -6px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #3c8062;
+  box-shadow: 0 2px 6px #0003;
+  cursor: nwse-resize;
+}
+.reconstructed-text {
+  overflow: visible;
+}
+.reconstructed-text-content {
+  width: 100%;
+  min-height: 100%;
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: normal;
+  line-height: 1.22;
+  padding: 2px;
+  box-sizing: border-box;
+  background: transparent;
+}
+.reconstructed-text-content:focus {
+  outline: 1px dashed #3c8062;
+  background: #ffffffed;
+}
+.reconstructed-image {
+  cursor: move;
+}
+.reconstructed-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+.reconstructed-image > span {
+  display: none;
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 3px;
+  background: #173c2f;
+  color: #fff;
+  border-radius: 4px;
+}
+.reconstructed-image.selected > span {
+  display: grid;
+}
+.reconstruction-inspector {
+  position: sticky;
+  top: 18px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f7f9f6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 32px #173c2f14;
+}
+.reconstruction-inspector-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #52615b;
+}
+.reconstruction-inspector-close:hover {
+  background: #e7eee9;
+}
+.reconstruction-inspector > b {
+  font-size: 11px;
+}
+.reconstruction-inspector > small {
+  font-size: 8px;
+  color: var(--muted);
+}
+.reconstruction-inspector label {
+  display: grid;
+  grid-template-columns: 50px 1fr 38px;
+  gap: 7px;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 700;
+}
+.reconstruction-inspector strong {
+  font-size: 8px;
+  text-align: right;
+}
+.reconstruction-inspector input[type="color"] {
+  width: 42px;
+  height: 30px;
+}
+.cover-reconstruction-editor ~ .cover-template-editor,
+.selection-page:has(.cover-reconstruction-editor) > .cover-template-editor {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .reconstruction-workspace {
+    grid-template-columns: 1fr;
+  }
+  .reconstruction-inspector {
+    position: static;
+  }
+}
+@media (max-width: 850px) {
+  .cover-reconstruction-editor {
+    width: calc(100% - 24px);
+    padding: 18px;
+  }
+  .reconstruction-workspace {
+    overflow-x: auto;
+  }
+  .reconstructed-cover {
+    min-width: 680px;
+  }
+}
+.reconstructed-move {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #abc5b6;
+  border-radius: 5px;
+  background: #f0f7f2;
+  color: #315f51;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+}
+.reconstructed-text:hover .reconstructed-move,
+.reconstructed-text:focus-within .reconstructed-move,
+.reconstructed-text.selected .reconstructed-move {
+  opacity: 1;
+}
+.reconstructed-move:active {
+  cursor: grabbing;
+}
+.reconstruction-inspector input[type="number"],
+.reconstruction-inspector select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+}
+.reconstruction-inspector select {
+  grid-column: 2 / 4;
+}
+.reconstruction-inspector .secondary {
+  font-size: 11px;
+  justify-content: center;
+}
+.reconstructed-resize-handle {
+  touch-action: none;
+}
+.reconstructed-text-content[contenteditable="false"] {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.reconstructed-text-content[contenteditable="false"]:active {
+  cursor: grabbing;
+}
+.reconstructed-text-content[contenteditable="true"] {
+  cursor: text;
+  user-select: text;
+  touch-action: auto;
+  /* Le cadre conserve sa hauteur, mais le contenu éditable doit pouvoir rétrécir.
+     Sinon scrollHeight reste bloqué par min-height:100% et supprimer une ligne vide
+     ne déclenche jamais le réagencement des blocs situés dessous. */
+  min-height: 0;
+}
+
+.reconstruction-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cover-add-text,
+.cover-selection-settings,
+.cover-undo {
+  height: 36px;
+  border: 1px solid #abc5b6;
+  border-radius: 8px;
+  background: #f5faf6;
+  color: #315f51;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+}
+.cover-selection-settings.active {
+  background: #e4f0e8;
+  border-color: #6f9c86;
+}
+.cover-undo:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+.reconstructed-format-toolbar {
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  bottom: calc(100% + 9px);
+  min-width: max-content;
+  height: 38px;
+  padding: 4px;
+  border: 1px solid #c9d4cd;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 8px 24px #14271f29;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.reconstructed-format-toolbar select {
+  width: 112px;
+  height: 28px;
+  border: 1px solid #dde3de;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 10px;
+}
+.reconstructed-format-toolbar input[type="number"] {
+  width: 49px;
+  height: 28px;
+  border: 1px solid #dde3de;
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.reconstructed-format-toolbar input[type="color"] {
+  width: 30px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid #dde3de;
+  border-radius: 6px;
+  background: #fff;
+}
+.reconstructed-format-toolbar button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #52615b;
+  display: grid;
+  place-items: center;
+}
+.reconstructed-format-toolbar button:hover,
+.reconstructed-format-toolbar button.active {
+  background: #e6f1e9;
+  color: #245943;
+}
+.reconstructed-format-toolbar button.danger:hover {
+  background: #fff0ee;
+  color: #b43a31;
+}
+
+/* ===== Affichage épuré, comme dans Word =====================================================================
+   Au repos : rien d'autre que le document. Au survol d'une zone : un fin pointillé gris et de petites poignées discrètes.
+   En écrivant : plus rien que le curseur. Aucun encadré vert, aucune pastille de couleur. */
+.reconstructed-item.selected,
+.reconstructed-shape.selected {
+  outline: none;
+}
+.reconstructed-image.selected {
+  outline: 1px solid #8a968f;
+  outline-offset: 0;
+}
+.reconstructed-shape.frame.selected {
+  outline: 1px dashed #8a968f;
+  outline-offset: 2px;
+}
+.reconstructed-text-content:focus {
+  outline: none;
+  background: transparent;
+}
+.reconstructed-cover:not(.is-typing) .reconstructed-item:hover:not(:focus-within) {
+  outline: 1px dashed rgba(0, 0, 0, 0.22);
+  outline-offset: 1px;
+}
+.reconstructed-item .reconstructed-move,
+.reconstructed-item .reconstructed-delete,
+.reconstructed-item .reconstructed-resize-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.reconstructed-cover:not(.is-typing) .reconstructed-item:hover .reconstructed-move,
+.reconstructed-cover:not(.is-typing) .reconstructed-item:hover .reconstructed-delete,
+.reconstructed-cover:not(.is-typing) .reconstructed-item:hover .reconstructed-resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+.reconstructed-item .reconstructed-move,
+.reconstructed-item .reconstructed-delete {
+  position: absolute;
+  left: -29px;
+  right: auto;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d3dad5;
+  border-radius: 6px;
+  background: #fff;
+  color: #5d6b64;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.reconstructed-item .reconstructed-move {
+  top: 0;
+  cursor: grab;
+}
+.reconstructed-item .reconstructed-delete {
+  top: 28px;
+}
+.reconstructed-item .reconstructed-delete:hover {
+  background: #fff;
+  color: #b3392a;
+  border-color: #e3b5ae;
+}
+.reconstructed-item .reconstructed-resize-handle {
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #8a968f;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: none;
+}
+.reconstructed-frame-handle {
+  opacity: 1;
+  width: 24px;
+  height: 24px;
+  color: #5d6b64;
+  border-color: #d3dad5;
+  background: #fff;
+  border-radius: 6px;
+}
+.reconstructed-frame-toolbar span {
+  color: #5d6b64;
+}
+/* Une règle plus ancienne affichait la poignée de déplacement dès qu'une zone avait le focus ou était sélectionnée :
+   on la rend aux seules phases de survol, et jamais pendant la saisie. */
+.reconstructed-cover .reconstructed-text.selected:not(:hover) .reconstructed-move,
+.reconstructed-cover .reconstructed-text:focus-within:not(:hover) .reconstructed-move {
+  opacity: 0;
+  pointer-events: none;
+}
+.reconstructed-cover.is-typing .reconstructed-item .reconstructed-move,
+.reconstructed-cover.is-typing .reconstructed-item .reconstructed-delete,
+.reconstructed-cover.is-typing .reconstructed-item .reconstructed-resize-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+/* La poignée de redimensionnement reste atteignable (invisible au repos) : en s'en approchant on « survole » la zone, elle apparaît. */
+.reconstructed-item .reconstructed-resize-handle {
+  pointer-events: auto;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background-clip: content-box;
+  padding: 2px;
+}
+.reconstructed-cover.is-typing .reconstructed-item .reconstructed-resize-handle {
+  pointer-events: none;
+}
+/* Pont de survol : une bande invisible à gauche de la zone garde les poignées affichées quand le pointeur va les chercher
+   (sans elle, elles disparaissaient dès que la souris quittait le bloc). Elle ne contient aucun bouton. */
+.reconstructed-text::before {
+  content: "";
+  position: absolute;
+  left: -34px;
+  top: 0;
+  width: 34px;
+  height: 60px;
+}
+.reconstructed-cover.is-typing .reconstructed-text::before {
+  pointer-events: none;
+}
+.reconstructed-item .reconstructed-move,
+.reconstructed-item .reconstructed-delete {
+  left: -27px;
+}
+
+/* Sélection au rectangle : cadre bleu clair discret, éléments retenus teintés, petite barre « Supprimer ». */
+.reconstructed-marquee {
+  position: absolute;
+  z-index: 9;
+  border: 1px solid #6d9bd0;
+  background: rgba(109, 155, 208, 0.14);
+  pointer-events: none;
+}
+.reconstructed-item.group-selected,
+.reconstructed-shape.group-selected {
+  outline: 1px solid #6d9bd0;
+  outline-offset: 1px;
+  background-color: rgba(109, 155, 208, 0.12);
+}
+.reconstructed-group-bar {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid #cfd9d4;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.reconstructed-group-bar button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  border: 1px solid #d3dad5;
+  background: #fff;
+  border-radius: 7px;
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 11.5px;
+}
+.reconstructed-group-bar button[data-cover-group-delete] {
+  color: #b3392a;
+  border-color: #e3b5ae;
+  font-weight: 700;
+}
+.reconstructed-shape.frame.selected {
+  outline: 1px dashed #6d9bd0;
+}

@@ -1,0 +1,8 @@
+/* Brouillon : un titre très long (noms de fichiers sans espaces) ne pousse plus les boutons hors de l'écran ; il passe à la ligne et les boutons aussi */
+.draft-heading{flex-wrap:wrap!important;gap:14px 20px!important;align-items:flex-end}
+.draft-heading>div:first-child{flex:1 1 640px;min-width:0}
+.draft-heading h1,.draft-title-display h1{overflow-wrap:anywhere;word-break:break-word;font-size:clamp(22px,2vw,32px)!important;line-height:1.18}
+.draft-title-display,.draft-title-edit{min-width:0;max-width:100%}
+.draft-head-actions{flex:0 1 auto!important;flex-wrap:wrap!important;justify-content:flex-end;min-width:0;max-width:100%}
+.draft-content{min-width:0;box-sizing:border-box}
+.document-card{min-width:0}

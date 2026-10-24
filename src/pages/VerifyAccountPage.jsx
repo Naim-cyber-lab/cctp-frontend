@@ -1,0 +1,11 @@
+import { useEffect, useState } from 'react';
+import { ArrowRight, MailCheck, ShieldCheck } from 'lucide-react';
+import { Logo } from '../components/Logo';
+
+export function VerifyAccountPage({email,onSend,onVerify,onLogout}){
+ const [code,setCode]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(false),[sending,setSending]=useState(true),[sent,setSent]=useState(false);
+ useEffect(()=>{onSend().then(()=>setSent(true)).catch(reason=>setError(reason.message)).finally(()=>setSending(false))},[]);
+ const resend=()=>{setSending(true);setError('');setSent(false);onSend().then(()=>setSent(true)).catch(reason=>setError(reason.message)).finally(()=>setSending(false))};
+ const submit=async event=>{event.preventDefault();setError('');setLoading(true);try{await onVerify(code)}catch(reason){setError(reason.message)}finally{setLoading(false)}};
+ return <main className="login-page"><section className="login-brand"><Logo/><div><span className="eyebrow">STUDIO CCTP</span><h1>Confirmez votre<br/>adresse email.</h1><p>Une dernière vérification avant d’accéder à votre espace CCTP.</p></div><small>Calepin · Assistant de rédaction technique</small></section><section className="login-form-wrap"><form className="login-form" onSubmit={submit}><span className="login-lock"><ShieldCheck size={21}/></span><h2>Vérifiez votre compte</h2><p>{sending?'Envoi du code en cours…':sent?<>Un code à 6 chiffres a été envoyé à <strong>{email}</strong>. Il est valable 15 minutes.</>:'Entrez le code reçu par email.'}</p><label><span>Code de vérification</span><div><MailCheck size={16}/><input value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} required placeholder="123456" autoFocus/></div></label>{error&&<div className="login-error">{error}</div>}<button className="primary login-submit" disabled={loading||code.length!==6}>{loading?'Vérification…':'Vérifier mon compte'} {!loading&&<ArrowRight size={17}/>}</button><button type="button" className="login-forgot" onClick={resend} disabled={sending}>{sending?'Envoi…':'Renvoyer le code'}</button><button type="button" className="login-forgot" onClick={onLogout}>Se déconnecter</button></form></section></main>;
+}

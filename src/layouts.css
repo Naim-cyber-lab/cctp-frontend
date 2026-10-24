@@ -1,0 +1,9 @@
+/* Trois gabarits seulement (UX-30) : on ne choisit plus une largeur par écran.
+   Portfolio : listes et pages de synthèse (Projets, CCTP, Estimations, Consultations, vue d'ensemble, Documents, Tâches) — large mais centré.
+   Work      : écrans de travail (éditeur CCTP, DPGF, analyse d'une consultation) — presque toute la largeur.
+   Settings  : bibliothèques, agence, paramètres — largeur modérée. */
+:root{--layout-portfolio:1180px;--layout-work:1560px;--layout-settings:960px;--layout-gutter:28px}
+.layout-portfolio{max-width:var(--layout-portfolio)!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box}
+.layout-work{max-width:var(--layout-work)!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box}
+.layout-settings{max-width:var(--layout-settings)!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box}
+@media(max-width:1240px){.layout-portfolio,.layout-work,.layout-settings{max-width:100%!important}}

@@ -1,0 +1,32 @@
+/* Page de rédaction du lot : barre d'outils sur une seule ligne, l'essentiel visible, le reste dans « Plus ». */
+.chapter-format-toolbar{flex-wrap:nowrap!important;overflow:visible!important;height:46px;min-height:46px!important;row-gap:0!important;padding:5px 12px!important;gap:3px!important;justify-content:flex-start}
+.chapter-format-toolbar>*{flex:none}
+.chapter-format-toolbar>i{width:1px;height:22px;background:var(--line);margin:0 4px}
+.chapter-format-toolbar button{width:32px;height:32px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:6px;color:#53615c;padding:0}
+.chapter-format-toolbar button:hover:not(:disabled){background:#f1f5f2;border-color:var(--line)}
+.chapter-format-toolbar select{height:32px;border:1px solid var(--line);border-radius:7px;background:#fff;padding:0 8px;font-size:11px}
+.chapter-format-toolbar .toolbar-lists{position:relative;display:flex}
+.chapter-format-toolbar .toolbar-lists-trigger{width:auto!important;min-width:0!important;padding:0 7px!important;display:flex!important;align-items:center;gap:3px}
+.chapter-format-toolbar .answer-trace-toggle{width:auto!important;min-width:0!important;padding:0 9px!important;display:flex!important;align-items:center;gap:5px}
+.chapter-format-toolbar .answer-trace-toggle small{font-size:11px!important}
+.chapter-format-toolbar .toolbar-more{position:relative;display:flex;margin-left:auto}
+.chapter-format-toolbar .toolbar-more-trigger{width:auto!important;min-width:0!important;padding:0 9px!important;display:flex!important;align-items:center;gap:4px}.chapter-format-toolbar .toolbar-more-trigger small{margin:0;font-size:11px;color:#53615c}.chapter-format-toolbar .toolbar-more-trigger.active{background:#f1f5f2;border-color:var(--line)}
+.chapter-format-toolbar .toolbar-more-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:80;width:262px;background:#fff;border:1px solid #dce3de;border-radius:12px;box-shadow:0 16px 40px #10261e38;padding:8px;display:grid;gap:2px}
+.chapter-format-toolbar .toolbar-more-menu>button{width:100%!important;height:auto!important;min-height:34px;display:flex!important;align-items:center;justify-content:flex-start;gap:10px;padding:6px 10px!important;border:0!important;background:transparent!important;border-radius:8px;font-size:12px;color:#1d2b25!important;text-align:left}
+.chapter-format-toolbar .toolbar-more-menu>button:hover{background:#f1f5f2!important}
+.chapter-format-toolbar .toolbar-more-menu>button small{display:inline!important;margin:0!important;font-size:12px!important;color:inherit!important}
+.chapter-format-toolbar .toolbar-more-menu>button:not(.toolbar-spellcheck)::after{content:attr(title);font-size:12px}
+@media(max-width:1350px){.chapter-format-toolbar .answer-trace-toggle small{display:none}}
+/* Écran « Comment souhaitez-vous démarrer ce chapitre ? » : jamais tronqué, quelle que soit la hauteur de la fenêtre (la page défile au lieu d'une zone interne coupée) */
+.chapter-preview-panel:has(.chapter-start){max-height:none!important;min-height:0!important;overflow:visible!important}
+.chapter-preview-paper:has(.chapter-start){overflow:visible!important;min-height:0!important;flex:none!important}
+.chapter-start{height:auto!important;min-height:0!important;justify-content:flex-start!important;padding:28px 30px 32px!important}
+@media(max-height:800px){.chapter-start{padding:20px 26px 24px!important}.chapter-start>p{margin-bottom:12px}.chapter-start-options{gap:9px}.chapter-start-card{padding:12px 16px}.chapter-start-card.primary{padding:15px 16px}}
+/* Pendant le travail de l'IA : tout reste visible au maximum (carte d'activité compacte, demande et saisie toujours accessibles) ; sinon la colonne défile */
+.ai-workbench.is-retouch{overflow-y:auto!important;overflow-x:hidden}
+.ai-conversation .ai-activity{padding:10px 14px}
+.ai-conversation .activity-step{margin:3px 0}
+.chapter-chat-history{flex:none;max-height:min(260px,34vh);min-height:84px}
+.ai-workbench.is-retouch .ai-workbench-composer{position:sticky;bottom:0;z-index:3;background:#fff}
+
+.chapter-format-toolbar .toolbar-more-menu>button.toolbar-justify.active,.rich-toolbar .toolbar-more-menu>button.toolbar-justify.active{background:#e8f4ec;color:#256b45;border-color:#a9c9b6}

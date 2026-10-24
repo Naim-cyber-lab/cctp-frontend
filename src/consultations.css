@@ -1,0 +1,146 @@
+.consult-page,.portal{max-width:1180px;margin:0 auto;padding:40px 28px 90px;color:#1b2f29}
+.consult-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:24px}.consult-head h1{font:600 34px/1.1 Manrope;margin:8px 0 8px;letter-spacing:-.03em}.consult-head p{margin:0;color:#667a72}
+.consult-card{background:#fff;border:1px solid #e3e7e0;border-radius:16px;padding:20px 22px;margin-bottom:16px}.consult-card h3{margin:0 0 12px;font:600 16px Manrope}.consult-card h4{margin:14px 0 6px;font-size:14px}
+.consult-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}
+.consult-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}.consult-row label{display:grid;gap:5px;font-size:12px;font-weight:650;color:#52665e;flex:1;min-width:200px}
+.consult-card label{display:grid;gap:5px;font-size:12px;font-weight:650;color:#52665e;margin-bottom:10px}
+.consult-card input,.consult-card select{border:1px solid #d5dcd4;border-radius:9px;padding:8px 10px;font:inherit;font-size:13px;background:#fff}
+.consult-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;align-items:end;margin-bottom:12px}
+.consult-search{width:100%;margin-bottom:10px}
+.consult-table{width:100%;border-collapse:collapse;font-size:13px}.consult-table th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#7a8a83;padding:8px 10px;border-bottom:1px solid #e6eae4}.consult-table td{padding:10px;border-bottom:1px solid #f0f2ee;vertical-align:middle}.consult-table td small{display:block;color:#7a8a83;font-size:11px}.consult-table tbody tr[data-consult-item]{cursor:pointer}.consult-table tbody tr[data-consult-item]:hover{background:#f6faf7}
+.consult-table.compact td input{width:120px}
+.consult-status,.company-status{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;background:#eef1ec;color:#52665e}
+.c-INVITED,.c-OPENED{background:#e6edf7;color:#2a4a78}.s-PUBLISHED,.s-IN_PROGRESS,.c-IN_PROGRESS{background:#fff3d6;color:#7a5a08}.s-ANALYSIS{background:#ece6f5;color:#51367a}.s-CLOSED,.s-AWARDED,.c-SUBMITTED{background:#dff1e6;color:#1d6a43}.s-CANCELLED,.c-DECLINED,.c-NO_RESPONSE{background:#f6e3e1;color:#8a2f25}
+.consult-title{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:10px 0 16px}.consult-title input{font:600 24px Manrope;border:0;border-bottom:1px dashed #cfd8d0;border-radius:0;background:transparent;padding:2px 0;min-width:340px}.consult-title small{display:block;color:#7a8a83;margin-top:4px}
+.consult-buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.consult-buttons button,.consult-buttons a.button,.consult-card button:not(.icon){border:1px solid #cfd8d0;background:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;display:inline-flex;gap:7px;align-items:center;color:#1b2f29;text-decoration:none}
+.consult-card button.primary,.consult-buttons .primary{background:#17372e;color:#fff;border-color:#17372e}.consult-card button.danger{color:#8a2f25;border-color:#e3c4bf}.consult-card button:disabled{opacity:.5;cursor:not-allowed}
+.consult-card button.icon{border:0;background:transparent;padding:4px;cursor:pointer;color:#52665e}
+.consult-hint{color:#667a72;font-size:12px;margin:6px 0 10px}.consult-empty{padding:28px;text-align:center;color:#7a8a83}
+.consult-links{margin-top:14px;display:grid;gap:6px;font-size:12px}.consult-links div{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.consult-links code{background:#f3f6f2;border-radius:6px;padding:3px 8px;word-break:break-all}.consult-links em{font-style:normal;color:#8a2f25}.consult-links em.ok{color:#1d6a43}
+.consult-question{border-top:1px solid #eef1ec;padding:10px 0}.consult-question p{margin:0 0 6px}.consult-question .answer{color:#1d6a43}
+.portal header{margin-bottom:20px}.portal h1{font:600 32px/1.15 Manrope;margin:8px 0}.portal-closed{color:#8a2f25;font-weight:650}
+@media(max-width:700px){.consult-page,.portal{padding:24px 16px 70px}.consult-grid{grid-template-columns:1fr}.consult-title input{min-width:0;width:100%}}
+.wizard-steps{list-style:none;margin:0 0 14px;padding:0;display:flex;gap:6px;flex-wrap:wrap}.wizard-steps button{border:1px solid #d5dcd4;background:#fff;border-radius:99px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:650;color:#52665e;cursor:pointer;display:flex;gap:7px;align-items:center}.wizard-steps button b{width:20px;height:20px;border-radius:50%;background:#eef1ec;display:grid;place-items:center;font-size:11px}.wizard-steps button.active{background:#17372e;color:#fff;border-color:#17372e}.wizard-steps button.active b{background:#ffffff30}.wizard-steps button.done b{background:#dff1e6;color:#1d6a43}
+.wizard-nav{margin-top:18px;padding-top:14px;border-top:1px solid #eef1ec}.wizard-nav .danger{margin-left:auto}
+.consult-docs{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px;font-size:13px}.consult-docs li{background:#f6f8f4;border-radius:9px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.consult-docs small{color:#7a8a83}.consult-docs a{color:#17372e;font-weight:650;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+.consult-checks{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px;font-size:13.5px}.consult-checks li{padding:8px 12px;border-radius:9px}.consult-checks .ok{background:#e9f5ee;color:#1d6a43}.consult-checks .warn{background:#fff6dc;color:#7a5a08}.consult-checks .bad{background:#f8e5e2;color:#8a2f25}
+.consult-banner{background:#fff6dc;border:1px solid #f0d9a0;color:#6b4f08;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13.5px}.consult-banner button{margin-left:auto;border:1px solid #d6b45a;background:#fff;border-radius:9px;padding:7px 14px;font-weight:700;cursor:pointer;color:#6b4f08}
+.inline-check{display:inline-flex!important;flex-direction:row;gap:4px;align-items:center;margin:0 10px 0 0!important;font-weight:600}
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.kpi-row span{background:#fff;border:1px solid #e3e7e0;border-radius:12px;padding:8px 14px;font-size:12.5px;color:#52665e}.kpi-row b{font:700 18px Manrope;color:#17372e;margin-right:4px}.kpi-row button{margin-left:auto}
+.portal-table-wrap{overflow-x:auto}.portal-table-wrap td input[type=text]{width:150px}
+.flag{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:5px;font-size:10px;font-weight:800;margin-left:4px;background:#fff3d6;color:#7a5a08}.flag.f-HIGH{background:#f8e5e2;color:#8a2f25}.flag.f-LOW{background:#e6edf7;color:#2a4a78}.flag.f-NOT_PRICED{background:#eceeea;color:#52665e}
+.legend{margin-right:14px;display:inline-flex;gap:4px;align-items:center}td.flagged{background:#fffaf0}.estimate-row td{background:#f6f8f4}
+.award-grid{display:grid;grid-template-columns:170px 1fr;gap:6px 14px;margin:0 0 10px;font-size:13.5px}.award-grid dt{color:#718078}.award-grid dd{margin:0;font-weight:650}
+.planning-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#f6f8f4;border-radius:10px;padding:10px 14px;font-size:13px}.planning-row label{display:flex!important;flex-direction:row;align-items:center;gap:6px;margin:0}
+.req-doc{display:inline-block;background:#f8e5e2;color:#8a2f25;border-radius:99px;padding:2px 10px;margin:0 6px 4px 0;font-size:11.5px;font-weight:650}.req-doc.ok{background:#dff1e6;color:#1d6a43}
+.import-box{border:1px dashed #9fb5a9;border-radius:12px;padding:12px;margin:10px 0}.conf{font-size:11.5px;font-weight:650;border-radius:99px;padding:2px 9px;background:#eceeea}.conf.c-HIGH{background:#dff1e6;color:#1d6a43}.conf.c-MEDIUM{background:#fff3d6;color:#7a5a08}.conf.c-AMBIGUOUS,.conf.c-LOW,.conf.c-NONE{background:#f8e5e2;color:#8a2f25}
+.portal-warn{display:block;color:#7a5a08;font-size:11px}.task-modal.wide{max-width:920px;width:92vw;max-height:86vh;overflow:auto}
+.consult-banner ul{margin:6px 0 0 18px;padding:0}
+.consult-card label.upload{display:inline-flex;flex-direction:row;gap:7px;align-items:center;border:1px dashed #9fb5a9;border-radius:10px;padding:8px 14px;cursor:pointer;color:#17372e;margin:0;font-size:13px;font-weight:650;background:#fff}
+
+/* ===== Passe design : cohérence des boutons, hiérarchie, responsive ===== */
+.consult-page button,.consult-page a.button,.portal button,.portal a.button{font:inherit;font-size:13px;font-weight:650;line-height:1.2;color:#1b2f29;background:#fff;border:1px solid #cfd8d0;border-radius:10px;padding:8px 14px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;justify-content:center;text-decoration:none;transition:background .15s,border-color .15s,box-shadow .15s}
+.consult-page button:hover:not(:disabled),.portal button:hover:not(:disabled),.portal a.button:hover{border-color:#9fb5a9;background:#f6faf7}
+.consult-page button.primary,.portal button.primary{background:#17372e;border-color:#17372e;color:#fff}.consult-page button.primary:hover:not(:disabled),.portal button.primary:hover:not(:disabled){background:#1f4a3d}
+.consult-page button.danger{color:#8a2f25;border-color:#e3c4bf}.consult-page button.danger:hover:not(:disabled){background:#fbefed;border-color:#d9a8a1}
+.consult-page button:disabled,.portal button:disabled{opacity:.5;cursor:not-allowed}
+.consult-page button.icon,.portal button.icon{border:0;background:transparent;padding:4px 6px;color:#52665e}.consult-page button.icon:hover:not(:disabled){background:#eef1ec}
+.consult-page button.back{border:0;background:transparent;color:#52665e;padding:4px 2px;margin:0 0 8px}.consult-page button.back:hover:not(:disabled){background:transparent;color:#17372e}
+.consult-page .consult-table td button+button{margin-left:6px}
+/* onglets principaux : contrôle segmenté */
+.consult-tabs{display:inline-flex;gap:4px;padding:4px;background:#e9ede7;border:1px solid #e0e5de;border-radius:12px}.consult-page .consult-tabs button{border:0;background:transparent;padding:8px 16px;border-radius:9px;color:#52665e}.consult-page .consult-tabs button.active{background:#17372e;color:#fff;box-shadow:0 2px 6px #17372e30}.consult-page .consult-tabs button:hover:not(.active){background:#fff}
+/* onglets d'exploitation : pastilles défilantes */
+.wizard-steps{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}.wizard-steps li{flex:0 0 auto}
+/* en-tête et cartes */
+.consult-head h1{font-size:32px}.consult-card{box-shadow:0 1px 2px #17372e0a}.consult-card h3{display:flex;gap:8px;align-items:center}
+.table-scroll,.consult-card{overflow-x:auto}.consult-card .consult-table{min-width:520px}.consult-card .consult-table.compact td input{min-width:90px}
+/* barre d'actions de la consultation */
+.ops-bar{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 20px}.ops-deadline{display:grid;gap:2px}.ops-deadline small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#7a8a83;font-weight:700}.ops-deadline b{font:700 17px Manrope}.ops-deadline span{font-size:12px;color:#667a72}
+.consult-empty{border:1px dashed #cfd8d0;border-radius:12px;background:#fafbf8}
+.consult-row input:not([type=checkbox]):not([type=file]),.consult-row select{flex:1 1 200px;min-width:0}
+.consult-question{padding:12px 0}
+/* portail entreprise */
+.portal{max-width:1000px}.portal header{margin-bottom:22px}.portal-hello{margin:2px 0 14px;color:#52665e;font-size:15px}
+.portal-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:16px}.portal-facts>div{background:#fff;border:1px solid #e3e7e0;border-radius:14px;padding:12px 16px;display:grid;gap:3px;align-content:start}
+.portal-facts small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#7a8a83;font-weight:700}.portal-facts b{font:650 15px/1.3 Manrope;word-break:break-word}.portal-facts span{font-size:12px;color:#667a72}.portal-facts em{font-style:normal;color:#8a2f25;font-weight:650;font-size:12.5px}.portal-facts .fact-closed{background:#fbefed;border-color:#ecc9c3}
+.portal-lines input{width:110px}
+@media(max-width:700px){
+  .consult-head{align-items:flex-start}.consult-head h1{font-size:27px}.consult-tabs{width:100%}.consult-tabs button{flex:1}
+  .consult-title{flex-direction:column;align-items:flex-start;gap:8px}.consult-title input{min-width:0;width:100%;font-size:21px}
+  .consult-card{padding:16px}.ops-bar{align-items:stretch}.ops-bar .consult-buttons{width:100%}.ops-bar .consult-buttons button{flex:1 1 auto}
+  .consult-buttons button,.consult-buttons a.button{flex:1 1 auto}.consult-row{gap:8px}.consult-row>*{flex:1 1 100%}
+  .consult-table td,.consult-table th{padding:8px 6px}.kpi-row button{margin-left:0;width:100%}
+  .portal{padding:20px 14px 60px}.portal h1{font-size:25px}.portal-facts{grid-template-columns:1fr}
+  .portal-lines thead{display:none}.portal-lines,.portal-lines tbody{display:block;min-width:0!important}
+  .portal-lines tr{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px 0;border-bottom:1px solid #eef1ec}
+  .portal-lines td{display:block;border:0!important;padding:0!important}.portal-lines td:first-child{grid-column:1/-1;font-weight:650}
+  .portal-lines td[data-label]::before{content:attr(data-label);display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#7a8a83;margin-bottom:3px}
+  .portal-lines td input{width:100%!important}.portal-lines td[data-label="Observations"]{grid-column:1/-1}
+  .portal-table-wrap{overflow:visible}.portal .consult-card .portal-lines{min-width:0}
+  .wizard-nav{flex-wrap:wrap}.wizard-nav .danger{margin-left:0;flex:1 1 100%}
+}
+/* fenêtres modales propres à la consultation (ne dépendent d'aucune autre feuille de style) */
+.consult-modal-backdrop{position:fixed;inset:0;z-index:120;background:rgba(13,30,24,.52);backdrop-filter:blur(5px);display:grid;place-items:center;padding:24px}
+.consult-modal{width:min(560px,96vw);max-height:88vh;overflow:auto;background:#f8faf8;border:1px solid #fff;border-radius:18px;padding:22px;box-shadow:0 28px 90px rgba(10,30,22,.3);color:#1b2f29}.consult-modal.wide{width:min(960px,96vw)}
+.consult-modal h3{margin:0 0 12px;font:600 18px Manrope}.consult-modal textarea{width:100%;box-sizing:border-box;border:1px solid #d5dcd4;border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;margin-bottom:12px;resize:vertical}
+.consult-modal .consult-buttons{margin-top:12px}.consult-modal ul{margin:8px 0}
+.consult-form{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}.consult-form label{margin:0}.consult-form>button{justify-self:start}
+@media(max-width:700px){.consult-form{grid-template-columns:1fr}.consult-modal{padding:16px;border-radius:14px}}
+
+/* planning (Gantt), notes, interrupteurs, comparaison de versions */
+.gantt{padding-bottom:10px}.gantt-scale{position:relative;height:20px;margin:0 0 4px 290px;font-size:10.5px;color:#7a8a83;border-bottom:1px solid #e6eae4}.gantt-scale span{position:absolute;transform:translateX(0);white-space:nowrap}
+.gantt-line{display:grid;grid-template-columns:280px 1fr;gap:6px 10px;padding:10px 0;border-bottom:1px solid #f0f2ee}.gantt-label{display:grid;gap:2px;font-size:13px}.gantt-label span{color:#667a72;font-size:12px}.gantt-label small{color:#7a5a08}
+.gantt-track{position:relative;height:30px;background:repeating-linear-gradient(90deg,#f6f8f4 0 1px,transparent 1px 8.33%);border-radius:8px}.gantt-bar{position:absolute;top:4px;height:22px;background:#17372e;color:#fff;border-radius:7px;font-size:10.5px;display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:#d94a38}
+.gantt-edit{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:end}.gantt-edit label{display:grid;gap:3px;margin:0}.gantt-edit small{color:#8a2f25}
+.consult-switches{display:grid;gap:8px;margin-top:6px}.consult-switches label{display:flex;flex-direction:row;gap:8px;align-items:center;font-weight:600;margin:0}
+.version-diff{background:#f6f8f4;border-radius:12px;padding:10px 14px;margin:8px 0}.delta{font-weight:700}.delta.up{color:#8a2f25}.delta.down{color:#1d6a43}
+@media(max-width:700px){.gantt-line{grid-template-columns:1fr}.gantt-scale{margin-left:0}}
+
+/* ===== Tickets : alignement, erreurs lisibles, version du DCE, refus, documents ===== */
+.consult-card label,.consult-row label{margin-bottom:0}
+.consult-row{align-items:flex-end}.consult-row input,.consult-row select{height:38px;box-sizing:border-box}.consult-row button{height:38px}
+.portal-error,.consult-page .quotes-error,.portal .quotes-error{background:#fbefed;border:1px solid #ecc9c3;color:#8a2f25;border-radius:12px;padding:11px 14px;margin:0 0 14px;font-size:13.5px;font-weight:600}
+.consult-help{background:#f6f8f4;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:13px}.consult-help summary{cursor:pointer;font-weight:650;color:#17372e}.consult-help p{margin:8px 0 2px;color:#52665e;line-height:1.5}.consult-help label{margin-top:8px}
+.version-bar{display:flex;gap:26px;align-items:center;flex-wrap:wrap;padding:12px 20px}.version-bar>div{display:grid;gap:2px}.version-bar small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#7a8a83;font-weight:700}.version-bar b{font:700 17px Manrope}.version-bar span{font-size:12px;color:#667a72}.version-bar button{margin-left:auto}
+.version-ok{margin:0 0 14px;color:#1d6a43}
+.revision-history li{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}.revision-history li>div:first-child{display:grid;gap:3px}.revision-history li.active{border:1px solid #9fd1b4;background:#eef8f1}.revision-history small{color:#667a72}
+.doc-link{border:0!important;background:transparent!important;padding:2px 0!important;color:#17372e;text-align:left;font-weight:650}.doc-link:hover{text-decoration:underline;background:transparent!important}
+.decline-card{display:flex;gap:16px;align-items:flex-start;background:#eef8f1;border:1px solid #9fd1b4;border-radius:16px;padding:20px 22px;margin-bottom:16px}.decline-card h3{margin:0 0 4px;font:700 18px Manrope;color:#1d6a43}.decline-card p{margin:0 0 12px;color:#35574a}.decline-icon{color:#1d6a43;display:grid;place-items:center}
+
+.consult-status+.decline-chip{margin-left:6px}
+/* colonne « Statut » de la liste : toutes les pastilles sont alignées à gauche, de même largeur minimale et centrées (aucun décalage selon le statut) */
+.consult-table [data-consult-item] td:nth-child(3){white-space:nowrap}
+.consult-table [data-consult-item] td:nth-child(3) .consult-status{box-sizing:border-box;min-width:116px;text-align:center;vertical-align:middle;margin-left:0}
+.consult-table [data-consult-item] td:nth-child(3) .consult-status+.consult-status{margin-left:6px;min-width:0}
+
+/* --- réponse entreprise : 5 blocs distincts ---------------------------------------------------------------------------------------- */
+.portal-block { border: 1px solid var(--line, #d9ded8); border-radius: 10px; padding: 14px 16px; margin: 14px 0; background: var(--surface, #fff); display: grid; gap: 10px; min-width: 0; }
+.portal-block h4 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+.portal-step { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #17372e; color: #fff; font-size: .8rem; flex: none; }
+.portal-option, .portal-variant { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 14px; padding: 12px; border: 1px solid var(--line, #d9ded8); border-radius: 8px; background: var(--surface-2, #f7f9f6); position: relative; }
+.portal-option > div:first-child, .portal-variant label:nth-child(2) { grid-column: 1 / -1; }
+.portal-option label, .portal-variant label, .portal-dispute-fields label { display: grid; gap: 4px; font-size: .85rem; min-width: 0; }
+.portal-option input[type=text], .portal-option input[type=number], .portal-variant input[type=text], .portal-variant input[type=number], .portal-variant textarea, .portal-variant select, .portal-dispute textarea, .portal-dispute input { width: 100%; box-sizing: border-box; }
+.portal-variant .icon { position: absolute; top: 8px; right: 8px; }
+.portal-variant-docs { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.portal-variant-docs legend { font-size: .85rem; padding: 0; }
+label.check { display: flex; align-items: center; gap: 6px; }
+.portal-dispute { display: grid; gap: 8px; padding: 10px 12px; border-left: 3px solid #c77d0a; background: #fff8ec; border-radius: 6px; }
+.portal-dispute-fields { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 12px; }
+.link-button { background: none; border: 0; padding: 0; color: #1d5b8f; text-decoration: underline; cursor: pointer; font: inherit; font-size: .8rem; width: fit-content; }
+@media (max-width: 720px) { .portal-dispute-fields { grid-template-columns: 1fr; } .portal-block { padding: 12px; } }
+
+/* --- analyse : base / options / variantes / réserves / quantités contestées ----------------------------------------------------------- */
+.ok-text { color: #2f6b4f; }
+.ops-company-detail { border: 1px solid var(--line, #d9ded8); border-radius: 10px; padding: 12px 14px; margin: 12px 0; display: grid; gap: 10px; }
+.ops-company-detail h4, .ops-company-detail h5 { margin: 0; }
+.ops-item { display: grid; grid-template-columns: minmax(160px, 1.4fr) minmax(160px, 1.2fr) minmax(160px, 1fr) auto; gap: 6px 14px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line, #d9ded8); font-size: .88rem; }
+.ops-decide { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 900px) { .ops-item { grid-template-columns: 1fr; } }
+
+/* liste des modifications d'indice */
+.change-list{display:grid;gap:12px}.change-group{border:1px solid var(--line,#d9ded8);border-radius:10px;padding:10px 14px;background:var(--surface,#fff)}.change-group h5{margin:0 0 8px;font-size:.9rem;color:#17372e}
+.change-group ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}.change{display:flex;gap:10px;align-items:baseline;font-size:.88rem;line-height:1.4;overflow-wrap:anywhere}
+.change-tag{flex:none;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef2ef;color:#34463d;white-space:nowrap}
+.change-TEXT .change-tag{background:#e9f1fb;color:#1f527f}.change-FORMAT .change-tag{background:#f3ecfa;color:#5b3a86}.change-LINES .change-tag{background:#eaf5ee;color:#245c41}.change-OPTIONS .change-tag{background:#fff6e5;color:#8a5a0a}.change-DOCUMENTS .change-tag{background:#fdecec;color:#8a2f2f}
+.change-before{color:#8a2f2f}.change-after{color:#245c41}

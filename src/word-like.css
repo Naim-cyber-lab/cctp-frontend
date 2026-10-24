@@ -1,0 +1,16 @@
+/* Barre d'outils : styles, police, couleurs, retraits */
+.rich-toolbar select.toolbar-style{min-width:104px}
+.rich-toolbar select.toolbar-font{min-width:112px}
+.color-picker{position:relative;display:flex}
+.color-picker-trigger{position:relative}
+.color-picker-trigger i{position:absolute;left:7px;right:7px;bottom:3px;height:3px;border-radius:2px}
+.color-picker-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;width:170px;padding:8px;background:#fff;border:1px solid #cad6cf;border-radius:12px;box-shadow:0 12px 30px rgba(23,55,46,.18)}
+.color-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.color-picker-menu .swatch{width:22px;height:22px;min-width:0;padding:0;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer}
+.color-picker-menu .swatch:hover{transform:scale(1.12)}
+.color-picker-menu .color-none{width:100%;height:auto;min-width:0;margin-top:7px;padding:6px 8px;border:1px solid #dce3de;border-radius:8px;background:#f7f9f7;font:600 12px Manrope,sans-serif;cursor:pointer;text-align:center}
+.rich-chapter-body [style*="margin-left"]{transition:margin-left .08s}
+/* La barre d'outils passe au-dessus de la discussion (z-index 30) : ses menus (couleurs, listes) ne doivent jamais être cachés derrière elle */
+.rich-toolbar{z-index:35!important}
+/* … et l'en-tête (avec ses menus : mode Suggestion, export…) reste au-dessus de la barre d'outils */
+.editor-top{z-index:40!important}

@@ -1,0 +1,13 @@
+.reference-themed-paper{color:var(--document-text-color)}
+.reference-themed-paper .paper-intro,.reference-themed-paper .paper-toc,.reference-themed-paper .paper-chapter,.reference-themed-paper .paper-footer{padding-left:var(--document-margin-left)!important;padding-right:var(--document-margin-right)!important}
+.reference-themed-paper .paper-intro{padding-top:var(--document-margin-top)}
+.reference-themed-paper .rich-chapter-body,.reference-themed-paper .intro-text,.reference-themed-paper .paper-toc{font-family:var(--document-font)!important;font-size:var(--document-font-size)!important;line-height:var(--document-line-height)!important;color:var(--document-text-color)!important}
+.reference-themed-paper .intro-title,.reference-themed-paper .paper-toc h2,.reference-themed-paper .chapter-title-edit{font-family:var(--document-font)!important;color:var(--document-heading-color)!important}
+.reference-themed-paper .chapter-number{background:color-mix(in srgb,var(--document-accent-color) 10%,white)!important;color:var(--document-accent-color)!important}
+.reference-themed-paper .paper-chapter-title,.reference-themed-paper .paper-footer{border-color:color-mix(in srgb,var(--document-accent-color) 28%,#d9dfda)!important}
+.reference-themed-paper .rich-chapter-body:not(:empty){border-left-color:color-mix(in srgb,var(--document-accent-color) 38%,white)!important}
+@media print{.reference-themed-paper{padding:0!important}.reference-themed-paper .paper-intro,.reference-themed-paper .paper-toc,.reference-themed-paper .paper-chapter,.reference-themed-paper .paper-footer{padding-left:var(--document-margin-left)!important;padding-right:var(--document-margin-right)!important}}
+
+.reference-themed-paper .chapter-title-edit{font-size:var(--document-lot-title-size)!important;font-weight:var(--document-lot-title-weight)!important}
+/* le titre du lot (niveau 1 des règles de mise en forme du profil) suit aussi l'alignement choisi : gauche, centré ou droite */
+.cctp-paper.reference-themed-paper .paper-chapter .paper-chapter-title .chapter-title-edit{text-align:var(--document-lot-title-align,left)!important}

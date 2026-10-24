@@ -1,0 +1,115 @@
+/* Discussion du CCTP : colonne grise à droite du papier (grands écrans), bulle flottante sinon */
+.cctp-chat{position:fixed;z-index:30;right:12px;top:var(--cctp-chat-top,208px);bottom:14px;width:300px;display:flex;flex-direction:column;background:#fff;border:1px solid #cfd9d4;border-radius:14px;box-shadow:0 10px 28px rgba(23,55,46,.12);overflow:hidden;transition:top .12s ease}
+.cctp-chat>header{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid #e3e7e1;color:#17372e;font-size:13px}
+.cctp-chat>header b{flex:1}
+.cctp-chat>header button{border:0;background:transparent;cursor:pointer;color:#5c6b64;display:grid;place-items:center;padding:2px;border-radius:6px}
+.cctp-chat>header button:hover{background:#eef2eb}
+.cctp-chat-list{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#f8faf7}
+.cctp-chat-empty{margin:auto 0;color:#718078;font-size:12px;line-height:1.5;text-align:center}
+.cctp-chat-day{text-align:center;color:#8a968f;font-size:10px;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.cctp-chat-message{display:flex;gap:7px;align-items:flex-end;margin-bottom:6px}
+.cctp-chat-message.mine{justify-content:flex-end}
+.cctp-chat-message>div{max-width:82%;min-width:0}
+.cctp-chat-message small{display:block;color:#718078;font-size:10px;margin:0 4px 2px}
+.cctp-chat-message.mine small{text-align:right}
+.cctp-chat-message p{margin:0;padding:7px 10px;border-radius:12px;background:#fff;border:1px solid #e3e7e1;font-size:13px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;color:#1d2b25}
+.cctp-chat-message.mine p{background:#1f4a3b;border-color:#1f4a3b;color:#fff}
+.cctp-chat-avatar{flex:none;width:24px;height:24px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700}
+.cctp-chat-form{display:flex;gap:6px;padding:8px;border-top:1px solid #e3e7e1;background:#fff}
+.cctp-chat-form textarea{flex:1;resize:none;border:1px solid #cfd9d4;border-radius:10px;padding:8px 10px;font:13px Manrope,sans-serif;max-height:90px;min-height:36px;outline:none}
+.cctp-chat-form textarea:focus{border-color:#1f4a3b}
+.cctp-chat-form>button{flex:none;width:36px;height:36px;border:0;border-radius:10px;background:#1f4a3b;color:#fff;display:grid;place-items:center;cursor:pointer}
+.cctp-chat-form>button:disabled{opacity:.4;cursor:default}
+.cctp-chat-error{padding:6px 12px;background:#fdecea;color:#a12a1f;font-size:12px}
+.cctp-chat-fab{position:fixed;z-index:30;right:18px;bottom:18px;width:48px;height:48px;border-radius:50%;border:0;background:#1f4a3b;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 22px rgba(23,55,46,.3)}
+.cctp-chat-fab em{position:absolute;top:-4px;right:-4px;min-width:19px;height:19px;border-radius:20px;background:#c0392b;color:#fff;font-style:normal;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+@media print{.cctp-chat,.cctp-chat-fab{display:none}}
+@media (min-width:1500px){body[data-chat-panel="open"] .editor-shell{padding-right:324px}}
+/* images, réponses, réactions, actions */
+.cctp-chat-bubble{position:relative;max-width:82%;min-width:0}
+.cctp-chat-message>.cctp-chat-bubble{max-width:82%}
+.cctp-chat-message.flash .cctp-chat-bubble>p{outline:2px solid #f2c94c}
+.cctp-chat-message.is-deleted .cctp-chat-deleted{background:transparent;border:1px dashed #cfd9d4;color:#8a968f;font-style:italic}
+.cctp-chat-edited{color:inherit;opacity:.7;font-size:10px;font-style:normal}
+.cctp-chat-quote{margin:0 0 3px;padding:4px 8px;border-left:3px solid #8dad9d;background:#eef2eb;border-radius:6px;font-size:11px;cursor:pointer;display:grid;gap:1px;color:#33463d}
+.cctp-chat-quote span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cctp-chat-images{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:3px}
+.cctp-chat-images button{display:block;border-radius:10px;overflow:hidden;border:1px solid #e3e7e1;line-height:0;padding:0;background:#fff;cursor:zoom-in}
+.cctp-chat-images img{max-width:200px;max-height:180px;object-fit:cover;display:block}
+.cctp-chat-lightbox{position:fixed;inset:0;z-index:120;background:rgba(10,18,15,.88);display:grid;place-items:center;padding:54px 32px 28px}
+.cctp-chat-lightbox figure{margin:0;max-width:min(1200px,94vw);max-height:calc(100vh - 82px);display:grid;gap:10px;justify-items:center}
+.cctp-chat-lightbox figure img{display:block;max-width:100%;max-height:calc(100vh - 120px);object-fit:contain;border-radius:8px;box-shadow:0 16px 54px rgba(0,0,0,.42)}
+.cctp-chat-lightbox figcaption{color:#fff;font:600 12px Manrope,sans-serif;max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cctp-chat-lightbox-close{position:absolute;right:20px;top:18px;width:38px;height:38px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(0,0,0,.28);color:#fff;display:grid;place-items:center;cursor:pointer}
+.cctp-chat-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.cctp-chat-reactions button{border:1px solid #cfd9d4;background:#fff;border-radius:999px;padding:1px 7px;font-size:12px;display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.cctp-chat-reactions button.mine{background:#e3f0e8;border-color:#7fae92}
+.cctp-chat-reactions b{font-size:11px}
+.cctp-chat-emojis{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px;padding:4px;background:#fff;border:1px solid #cfd9d4;border-radius:10px;box-shadow:0 6px 16px rgba(23,55,46,.15);width:max-content;max-width:220px}
+.cctp-chat-emojis button{border:0;background:transparent;font-size:16px;cursor:pointer;border-radius:6px;padding:2px 4px}
+.cctp-chat-emojis button:hover{background:#eef2eb}
+.cctp-chat-actions{position:absolute;top:-12px;right:4px;display:none;gap:1px;background:#fff;border:1px solid #cfd9d4;border-radius:8px;padding:1px;box-shadow:0 3px 8px rgba(23,55,46,.12)}
+.cctp-chat-message.mine .cctp-chat-actions{right:auto;left:4px}
+.cctp-chat-message:hover .cctp-chat-actions,.cctp-chat-message:focus-within .cctp-chat-actions{display:flex}
+.cctp-chat-actions button{border:0;background:transparent;width:24px;height:22px;display:grid;place-items:center;border-radius:6px;cursor:pointer;color:#33463d}
+.cctp-chat-actions button:hover{background:#eef2eb}
+.cctp-chat-editing{display:grid;gap:4px}
+.cctp-chat-editing textarea{width:100%;box-sizing:border-box;border:1px solid #7fae92;border-radius:8px;padding:6px 8px;font:13px Manrope,sans-serif;resize:none}
+.cctp-chat-editing div,.cctp-chat-confirm{display:flex;gap:6px;align-items:center;font-size:11px;color:#33463d}
+.cctp-chat-editing button,.cctp-chat-confirm button{border:1px solid #cfd9d4;background:#fff;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer}
+.cctp-chat-editing button:first-child,.cctp-chat-confirm button:first-of-type{background:#1f4a3b;border-color:#1f4a3b;color:#fff}
+.cctp-chat-confirm{margin-top:4px;padding:5px 8px;background:#fdecea;border-radius:8px;color:#a12a1f}
+.cctp-chat-replying{display:flex;gap:6px;align-items:center;padding:5px 10px;background:#eef2eb;border-top:1px solid #e3e7e1;font-size:11px;color:#33463d}
+.cctp-chat-replying span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cctp-chat-replying button{border:0;background:transparent;cursor:pointer;display:grid;place-items:center}
+.cctp-chat-pending{display:flex;gap:6px;flex-wrap:wrap;padding:6px 10px;border-top:1px solid #e3e7e1;background:#fff}
+.cctp-chat-pending span{position:relative;line-height:0}
+.cctp-chat-pending img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e3e7e1}
+.cctp-chat-pending button{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;border:0;background:#33463d;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.cctp-chat-form>button.ghost{background:transparent;color:#33463d;border:1px solid #cfd9d4}
+.cctp-chat-form .mention-field{flex:1;min-width:0}
+.cctp-chat-form .mention-field textarea{width:100%;box-sizing:border-box}
+.cctp-chat .mention-menu{max-width:100%;box-sizing:border-box}
+.cctp-chat-message.mine .mention-user{background:rgba(255,255,255,.2);color:#fff}
+/* les notifications flottantes ne recouvrent pas la zone de saisie de la discussion */
+body[data-chat-panel="open"] .mention-toasts{right:330px}
+@media (max-width:1499px){body[data-chat-panel="open"] .mention-toasts{bottom:90px}}
+.cctp-chat .mention-menu{width:100%;min-width:0;max-width:100%}
+.cctp-chat .mention-menu button{color:#1d2b25;background:transparent;height:auto;min-height:34px;justify-content:flex-start}
+.cctp-chat .mention-menu button.on,.cctp-chat .mention-menu button:hover{background:#eaf3ee}
+.cctp-chat .mention-menu small{margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.cctp-chat .mention-menu button{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:34px;padding:0 12px}
+.cctp-chat .mention-menu small{display:none}
+/* citation d'un passage, repère « nouveaux messages », messages épinglés */
+::highlight(chat-quote){background:#ffe58a;color:inherit}
+.cctp-chat-discuss{position:fixed;z-index:60;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:#1f4a3b;color:#fff;font:600 12px Manrope,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(23,55,46,.35)}
+.cctp-chat-discuss:hover{background:#17372e}
+.cctp-chat-passage{display:flex;align-items:flex-start;gap:6px;width:100%;margin:0 0 3px;padding:5px 8px;border:1px solid #e6d58a;border-left:3px solid #e0b93a;background:#fff8dc;border-radius:8px;font:11px/1.4 Manrope,sans-serif;color:#4a3f10;cursor:pointer;text-align:left}
+.cctp-chat-passage svg{flex:none;margin-top:2px}
+.cctp-chat-passage span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-style:italic}
+.cctp-chat-quoting{display:flex;gap:6px;align-items:flex-start;padding:6px 10px;background:#fff8dc;border-top:1px solid #e6d58a;font-size:11px;color:#4a3f10}
+.cctp-chat-quoting span{flex:1;min-width:0;display:grid;gap:1px}
+.cctp-chat-quoting span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-style:italic}
+.cctp-chat-quoting b{font-style:normal;display:block}
+.cctp-chat-quoting button{border:0;background:transparent;cursor:pointer;display:grid;place-items:center}
+.cctp-chat-new{display:flex;align-items:center;gap:8px;margin:10px 0 8px;color:#c0392b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.cctp-chat-new:before,.cctp-chat-new:after{content:"";flex:1;height:1px;background:#e8b4ad}
+.cctp-chat-pins{border-bottom:1px solid #e3e7e1;background:#fffaf0}
+.cctp-chat-pin-top{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:0;background:transparent;cursor:pointer;text-align:left;color:#6b4e0a;font:12px Manrope,sans-serif}
+.cctp-chat-pin-top>span{flex:1;min-width:0;display:grid}
+.cctp-chat-pin-top small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5c5c4a;font-size:11px}
+.cctp-chat-pin-top svg.open{transform:rotate(180deg)}
+.cctp-chat-pins ul{list-style:none;margin:0;padding:0 8px 8px;display:grid;gap:4px;max-height:160px;overflow-y:auto}
+.cctp-chat-pins li{display:flex;gap:4px;align-items:center;background:#fff;border:1px solid #f0e2b6;border-radius:8px}
+.cctp-chat-pins li .go{flex:1;min-width:0;border:0;background:transparent;padding:5px 8px;text-align:left;cursor:pointer;display:grid;font:11px Manrope,sans-serif;color:#33463d}
+.cctp-chat-pins li .go span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cctp-chat-pins li .unpin{border:0;background:transparent;cursor:pointer;padding:4px 6px;color:#8a6d1a;display:grid;place-items:center}
+.cctp-chat-message.is-pinned .cctp-chat-bubble>p{box-shadow:0 0 0 2px #f2d98a}
+.cctp-chat-message small .pin-mark{margin-right:3px;color:#b8860b;vertical-align:-1px}
+/* messages en cours d'envoi / non envoyés */
+.cctp-chat-message.is-pending .cctp-chat-bubble{opacity:.6}
+.cctp-chat-message.is-failed .cctp-chat-bubble>p{border-color:#e8b4ad}
+.cctp-chat-failed{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px;padding:5px 8px;background:#fdecea;border-radius:8px;color:#a12a1f;font-size:11px}
+.cctp-chat-failed span{flex:1 1 100%}
+.cctp-chat-failed button{border:1px solid #e8b4ad;background:#fff;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;color:#a12a1f}
+.cctp-chat-failed button:first-of-type{background:#a12a1f;border-color:#a12a1f;color:#fff}

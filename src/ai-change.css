@@ -1,0 +1,5 @@
+/* Passages modifiés par l'IA : mis en évidence tant qu'on n'a pas retouché la page (aucune trace dans le texte enregistré) */
+::highlight(ai-change){background-color:#fff0a8;color:inherit}
+.ai-change-banner{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:999px;background:#fff7c7;border:1px solid #ecd978;color:#5c4a00;font-size:12px}
+.ai-change-banner button{border:0;background:transparent;color:#5c4a00;font:inherit;font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
+.chapter-preview-panel.is-modifying [contenteditable]{opacity:.55;transition:opacity .2s}

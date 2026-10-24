@@ -1,0 +1,16 @@
+.reference-cover-presets{max-width:1180px;margin:0 auto 22px;padding:22px 28px;border:1px solid #cddbd3;border-radius:15px;background:#f7faf7;display:grid;grid-template-columns:330px 1fr;gap:42px}
+.reference-cover-presets h2{font:600 20px Manrope;margin:7px 0}
+.reference-cover-presets p{font-size:10px;line-height:1.55;color:var(--muted)}
+.reference-cover-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.reference-cover-grid>button{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center;text-align:left;padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.reference-cover-grid>button:hover,.reference-cover-grid>button.active{border-color:#39745b;box-shadow:0 0 0 3px #39745b18}
+.reference-cover-grid img{width:72px;height:98px;object-fit:cover;object-position:top;border:1px solid #d9ddd9}
+.reference-cover-grid span{min-width:0;display:flex;flex-direction:column;gap:4px}
+.reference-cover-grid strong{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reference-cover-grid small{font-size:7px;color:var(--muted)}
+.reference-cover-grid i{font-style:normal;font-size:8px;font-weight:700;color:#39745b}
+@media(max-width:850px){.reference-cover-presets{grid-template-columns:1fr;margin:0 16px 22px}}
+
+.reference-cover-grid em{font-style:normal;font-size:7.5px;color:var(--muted);line-height:1.35}
+
+.reference-import-tile{display:flex!important;align-items:center;gap:12px;grid-template-columns:none;border-style:dashed!important;color:var(--green)!important;background:#f8fbf9!important;cursor:pointer}.reference-import-tile span{display:flex;flex-direction:column;gap:3px}.reference-import-tile strong{font-size:10px!important;color:var(--ink)}.reference-import-tile small{font-size:8.5px!important;line-height:1.4}.reference-import-tile:disabled{opacity:.75;cursor:progress}.reference-import-tile .spin{animation:spin 1s linear infinite}.reference-import-error{margin:10px 0 0;font-size:10.5px;color:#b3261e}@keyframes spin{to{transform:rotate(360deg)}}

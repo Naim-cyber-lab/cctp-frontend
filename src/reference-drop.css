@@ -1,0 +1,53 @@
+.reference-upload {
+  min-height: 76px;
+  padding: 16px 18px;
+  gap: 11px;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.reference-upload > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.reference-upload b { font-size: 13px; }
+.reference-upload small { font-size: 9px; font-weight: 500; color: #78847f; }
+.reference-upload:hover { background: #f2f8f4; border-color: #54806e; }
+
+.reference-upload.is-dragging {
+  background: #e7f3eb;
+  border: 2px solid #3f765f;
+  box-shadow: 0 0 0 4px rgba(63,118,95,.1);
+  transform: scale(1.01);
+}
+
+.reference-upload.is-dragging small { color: #4b6e60; }
+
+.reference-library-layer { position: fixed; inset: 0; z-index: 40; }
+.reference-library-layer .reference-backdrop { z-index: 0; }
+.reference-library-layer .reference-library { z-index: 1; }
+
+.reference-page-drop {
+  position: fixed;
+  inset: 18px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #234f40;
+  background: rgba(238, 248, 241, .94);
+  border: 3px dashed #4b806b;
+  border-radius: 18px;
+  box-shadow: 0 16px 60px rgba(17, 43, 34, .22);
+  backdrop-filter: blur(4px);
+}
+
+.reference-page-drop b { font: 700 24px Manrope, sans-serif; }
+.reference-page-drop span { color: #687b73; font-size: 12px; }
+.reference-shared-badge{font-style:normal;color:#245c40;background:#e3f2e8;border-radius:20px;padding:1px 8px;font-size:10.5px;font-weight:700}
+.reference-list article button[data-share]{color:#315f51}

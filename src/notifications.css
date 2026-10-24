@@ -1,0 +1,30 @@
+.notification-bell{position:relative;display:inline-flex}.notification-bell>button{position:relative;width:38px;height:38px;border-radius:50%;border:1px solid #dfe2da;background:#fff;display:grid;place-items:center;cursor:pointer;color:#17372e}.notification-bell>button em{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:999px;background:#d83b3b;color:#fff;font:700 10px/17px Arial;text-align:center;padding:0 4px;font-style:normal}
+.notification-panel{position:absolute;right:0;top:46px;z-index:300;width:min(380px,92vw);max-height:70vh;overflow:auto;background:#fff;border:1px solid #dce3de;border-radius:14px;box-shadow:0 16px 48px #10261e40;padding:10px}.notification-panel>header{display:flex;align-items:center;gap:8px;padding:2px 4px 8px}.notification-panel>header b{flex:1;font-size:13px;color:#17372e}.notification-panel>header button{border:0;background:transparent;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#315f51;cursor:pointer}
+.notification-panel ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}.notification-panel li button{all:unset;box-sizing:border-box;display:flex;gap:10px;align-items:flex-start;width:100%;padding:9px 8px;border-radius:10px;cursor:pointer}.notification-panel li button:hover{background:#f4f7f5}.notification-panel li.unread button{background:#f1f8f3}.notification-icon{width:28px;height:28px;border-radius:50%;background:#e3eee8;color:#315f51;display:grid;place-items:center;flex:none}.notification-text{flex:1;display:grid;gap:2px;min-width:0}.notification-text b{font-size:12px;color:#17372e}.notification-text small{font-size:10px;color:#718078}.notification-text q{font-size:12px;color:#405049;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;quotes:none}.notification-panel li i{width:8px;height:8px;border-radius:50%;background:#d83b3b;margin-top:6px;flex:none}.notification-empty{color:#718078;font-size:12px;padding:10px 6px;margin:0}
+.notification-toasts{bottom:150px}.mention-user{background:#e3eee8;color:#17372e;border-radius:4px;padding:0 3px;font-weight:700}.mention-menu{position:absolute;z-index:20;background:#fff;border:1px solid #cfd9d4;border-radius:10px;box-shadow:0 10px 30px #10261e33;min-width:220px;max-width:300px;overflow:hidden}.mention-menu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;font-size:12px;cursor:pointer}.mention-menu button.on,.mention-menu button:hover{background:#eaf3ee}.mention-menu small{color:#718078;margin-left:auto}
+/* Affichage propre : tout est aligné à gauche, les textes longs passent à la ligne, la police est celle du site */
+.notification-panel,.notification-panel *{text-align:left}
+.notification-panel li button{font:inherit;color:inherit;line-height:1.35;align-items:flex-start}
+.notification-text{justify-items:start}
+.notification-text b{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.notification-text small{font-size:11px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+.notification-text q{font-size:12.5px;line-height:1.4;overflow-wrap:anywhere;margin:2px 0 0}
+.notification-panel>header{border-bottom:1px solid #edf1ee;margin-bottom:6px}
+.notification-panel li+li{border-top:1px solid #f1f4f2}
+/* l'icône est centrée sur la première ligne du texte (et non plus décalée vers le bas) */
+.notification-panel li button .notification-icon{margin-top:-4px}
+/* la barre du haut passe au premier plan tant que la liste des notifications est ouverte : la barre de l'aperçu (z-index 40) ne la recouvre plus */
+.topbar:has([data-notification-panel]){z-index:60}
+/* l'icône est exactement centrée dans son rond (horizontalement et verticalement) */
+.notification-panel .notification-icon{display:grid!important;place-items:center!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:0}
+.notification-panel .notification-icon svg{display:block;margin:0}
+
+.notification-device{border-top:1px solid #e4e9e6;margin-top:8px;padding:10px 12px 4px;display:grid;gap:6px;font-size:12px;color:#405049}
+.notification-device b{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#17382f}.notification-device p{margin:0;line-height:1.45}
+.notification-device button{justify-self:start;border:1px solid #cfd9d4;background:#fff;border-radius:999px;font:inherit;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;color:#17382f}
+.notification-device button[data-push-enable]{background:#17382f;color:#fff;border-color:#17382f}
+.notification-device-actions{display:flex;gap:8px;margin-top:4px}.notification-device small{color:#216445}
+
+/* la croix de fermeture est toujours collée à droite de l'en-tête, que le bouton « Tout marquer comme lu » soit affiché ou non */
+.notification-panel>header>b{flex:1 1 auto!important}
+.notification-panel>header>button[aria-label="Fermer"]{margin-left:auto!important;flex:none}

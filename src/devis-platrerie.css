@@ -1,0 +1,128 @@
+/* Devis : parcours (guide, onglets), choix du lot, tableau aligné sur une seule grille, récapitulatif global. */
+.devis-guide{margin:12px 0}
+.devis-guide ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.devis-guide li{display:grid;gap:3px;background:#f6f9f7;border:1px solid #e1e8e4;border-radius:14px;padding:12px 16px}
+.devis-guide li.on{background:#eaf3ee;border-color:#2f6b57}
+.devis-guide li b{font-size:13px;color:#17382f}.devis-guide li span{font-size:12px;color:#5b6b63;line-height:1.45}
+
+.devis-tabs{display:flex;gap:4px;margin:14px 0 12px;border-bottom:1px solid #dfe6e2}
+.devis-tabs button{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:700;color:#66756e;padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.devis-tabs button:hover{color:#17382f}.devis-tabs button.active{color:#17382f;border-bottom-color:#17382f}
+
+.devis-lots{display:grid;gap:14px;min-width:0}
+.devis-lot-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.devis-lot-picker button{display:grid;gap:3px;align-content:start;text-align:left;background:#fff;border:1px solid #dfe6e2;border-radius:14px;padding:12px 14px;font:inherit;cursor:pointer;color:#1b2f29;transition:border-color .15s,box-shadow .15s}
+.devis-lot-picker button:hover{border-color:#9bb5aa}
+.devis-lot-picker button.active{border-color:#17382f;box-shadow:0 0 0 2px #17382f1f;background:#f6faf8}
+.devis-lot-num{font-size:10px;font-weight:800;color:#2f6b57;letter-spacing:.08em}
+.devis-lot-picker b{font-size:14px;line-height:1.3}
+.devis-lot-picker small{display:flex;align-items:center;gap:5px;font-size:11.5px;color:#66756e}
+.devis-lot-picker em{font-style:normal;font-size:11.5px;font-weight:700;color:#66756e;margin-top:3px}.devis-lot-picker em.ok{color:#216445}.devis-lot-picker em.todo{color:#8a5a00}
+
+.devis-lot-panel{background:#fff;border:1px solid #dfe6e2;border-radius:18px;padding:20px 22px;display:grid;gap:16px;min-width:0;box-shadow:0 1px 2px #10261e0d}
+.devis-lot-panel>header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.devis-lot-panel h3{margin:0 0 4px;font-size:18px;color:#17382f}
+.devis-lot-panel header p{margin:0;font-size:13px;color:#5b6b63;line-height:1.5;max-width:700px}
+.devis-lot-total{display:grid;gap:2px;text-align:right}.devis-lot-total small{font-size:11px;color:#718078;letter-spacing:.06em;text-transform:uppercase}.devis-lot-total b{font-size:22px;color:#17382f;font-variant-numeric:tabular-nums}
+
+.devis-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:#f6f9f7;border-radius:12px;padding:10px 14px;font-size:12.5px;color:#405049}
+.devis-policy-wrap{position:relative}
+.devis-ghost,.devis-btn,.devis-pl-add{display:inline-flex;gap:6px;align-items:center;justify-content:center;border:1px solid #cdd8d2;background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:12.5px;font-weight:700;color:#17382f;cursor:pointer;transition:background .15s}
+.devis-ghost:hover,.devis-btn:hover,.devis-pl-add:hover{background:#eef4f0}
+.devis-btn.primary,.devis-pl-add.primary{background:#17382f;color:#fff;border-color:#17382f}.devis-btn.primary:hover{background:#215040}.devis-btn:disabled{opacity:.55;cursor:default}
+.devis-pl-policy{margin-top:10px;display:grid;gap:8px;background:#fff;border:1px solid #dfe6e2;border-radius:12px;padding:12px 14px}
+.devis-pl-policy p{margin:0;font-size:12px;color:#5b6b63}.devis-pl-policy label{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.devis-pl-policy label span{display:grid;gap:1px}.devis-pl-policy small{font-size:11px;color:#718078}
+
+.devis-notice{display:flex;gap:12px;align-items:flex-start;background:#fff8e6;border:1px solid #f0d9a0;border-radius:14px;padding:14px 16px;color:#6b4f08}
+.devis-notice p{margin:4px 0 10px;font-size:12.5px;line-height:1.5}
+.devis-empty-text{font-size:13px;color:#68766f;margin:8px 0}
+
+/* tableau : une seule grille de colonnes pour les lignes générées et les lignes libres */
+.devis-table-wrap{overflow-x:auto;border:1px solid #e4ebe7;border-radius:14px}
+.devis-table{width:100%;min-width:1100px;table-layout:fixed;border-collapse:collapse;font-size:13px}
+.devis-table .c-num{width:58px}.devis-table .c-name{width:25%}.devis-table .c-desc{width:23%}.devis-table .c-unit{width:132px}.devis-table .c-qty{width:112px}.devis-table .c-price{width:112px}.devis-table .c-total{width:128px}.devis-table .c-status{width:150px}.devis-table .c-act{width:76px}
+.devis-table thead th{background:#f6f9f7;text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#6c7b74;padding:11px 12px;border-bottom:1px solid #e4ebe7;white-space:nowrap}
+.devis-table th.num,.devis-table td.num{text-align:right}
+.devis-table td{padding:10px 12px;vertical-align:middle;border-bottom:1px solid #eef2ef;overflow-wrap:anywhere}
+.devis-table tbody tr:last-child td{border-bottom:0}
+.devis-table td.muted,.devis-table .muted{color:#8a978f;font-size:12px}
+.devis-table td.name b{display:block;font-size:13.5px;color:#1b2f29;line-height:1.35}
+.devis-table td.name small{display:block;margin-top:2px;font-size:11px;color:#8a978f}
+.devis-table td.desc{color:#405049;line-height:1.4}
+.devis-table td.total{font-weight:800;color:#17382f;font-variant-numeric:tabular-nums;white-space:nowrap}
+.devis-table .devis-group td{background:#eef4f0;color:#17382f;font-weight:800;font-size:12px;letter-spacing:.02em;padding:8px 12px;border-bottom:1px solid #e1e9e4}
+.devis-table .devis-row:hover td{background:#fafcfb}
+.devis-table .devis-pl-accessory td:nth-child(2),.devis-table .devis-pl-plus_value td:nth-child(2){padding-left:24px}
+.devis-table input,.devis-table select{width:100%;height:36px;box-sizing:border-box;font:inherit;font-size:13px;color:#1b2f29;border:1px solid #d5ded9;border-radius:9px;padding:0 10px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.devis-table input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+.devis-table input:focus,.devis-table select:focus{outline:none;border-color:#2f6b57;box-shadow:0 0 0 3px #2f6b5726}
+.devis-table input:disabled,.devis-table select:disabled{background:#f4f7f5;color:#66756e}
+.devis-table td.act{text-align:right;white-space:nowrap}
+.devis-table td.act button{border:0;background:transparent;color:#5b7a6d;cursor:pointer;padding:6px;border-radius:8px}.devis-table td.act button:hover{background:#eaf1ed;color:#17382f}
+.devis-table .devis-note td{background:#fffaf0;font-size:12px;color:#6b4f08;padding:8px 12px 8px 70px}
+.devis-table .devis-note.warn td{background:#fdf0ee;color:#9b2c20}
+.devis-table .devis-note button{margin-left:10px;border:1px solid #e4b6b0;background:#fff;border-radius:999px;font:inherit;font-size:11px;font-weight:700;padding:3px 10px;cursor:pointer;color:#9b2c20}
+.devis-table .devis-note svg{vertical-align:-2px;margin-right:4px}
+.devis-table .devis-add-row td{background:#fbfcfb;padding:8px 12px}
+.devis-add{display:inline-flex;gap:6px;align-items:center;border:1px dashed #9bb5aa;background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:12.5px;font-weight:700;color:#2f6b57;cursor:pointer}.devis-add:hover{background:#eef4f0}
+
+.devis-pl-status{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;white-space:nowrap}
+.devis-pl-status.ok{background:#e1f1e8;color:#216445}.devis-pl-status.todo{background:#fff1d6;color:#8a5a00}.devis-pl-status.warn{background:#fde3e0;color:#9b2c20}.devis-pl-status.manual,.devis-pl-status.option{background:#e6edf7;color:#2a4a78}
+
+/* récapitulatif global */
+.devis-recap{display:grid;gap:18px;background:#fff;border:1px solid #dfe6e2;border-radius:18px;padding:20px 22px;box-shadow:0 1px 2px #10261e0d}
+.devis-recap-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.devis-recap-table thead th{text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#6c7b74;padding:8px 12px;border-bottom:1px solid #e4ebe7}
+.devis-recap-table th.num,.devis-recap-table td.num{text-align:right}
+.devis-recap-table td{padding:12px;border-bottom:1px solid #eef2ef;vertical-align:middle}.devis-recap-table td.total{font-weight:800;color:#17382f;font-variant-numeric:tabular-nums}.devis-recap-table td.muted{color:#718078;font-size:12.5px}.devis-recap-table td.act{text-align:right}
+.devis-totals{margin-left:auto;width:min(360px,100%);display:grid;gap:8px}
+.devis-totals div{display:flex;justify-content:space-between;gap:20px;font-size:13.5px;color:#405049}.devis-totals b{font-variant-numeric:tabular-nums;color:#1b2f29}
+.devis-totals .grand{border-top:2px solid #17382f;padding-top:10px;margin-top:2px;font-size:16px;color:#17382f}.devis-totals .grand b{font-size:20px;color:#17382f}
+.devis-recap-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.devis-recap-foot .ready{color:#216445;display:inline-flex;gap:6px;align-items:center;font-weight:700}.devis-recap-foot .warning{color:#8a5a00;display:inline-flex;gap:6px;align-items:center;font-weight:700}
+
+/* origine du prix : standard de l'agence / prix de ce devis */
+.devis-table td.price{vertical-align:top;padding-top:12px}
+.price-origin{display:grid;gap:4px;margin-top:6px;justify-items:end;text-align:right}
+.price-origin .tag{font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.price-origin .tag.standard{background:#e1f1e8;color:#216445}.price-origin .tag.custom{background:#e6edf7;color:#2a4a78}.price-origin .tag.none{background:#f0f2f1;color:#6c7b74}
+.price-origin button{border:0;background:transparent;font:inherit;font-size:10.5px;font-weight:700;color:#2f6b57;text-decoration:underline;cursor:pointer;padding:0;text-align:right}
+.devis-standard-hint{margin:0;font-size:12.5px;line-height:1.55;color:#405049;background:#eef4f0;border-left:3px solid #2f6b57;border-radius:8px;padding:10px 14px}
+.devis-table .c-price{width:158px}.devis-table .c-desc{width:20%}.devis-table{min-width:1140px}
+.price-origin button{white-space:nowrap}
+
+.devis-pl-status.ready{background:#e6edf7;color:#2a4a78}
+.unit-origin{display:block;margin-top:4px;font-size:10.5px;color:#8a978f;line-height:1.3}.unit-origin button{border:0;background:transparent;font:inherit;font-size:10.5px;font-weight:700;color:#2f6b57;text-decoration:underline;cursor:pointer;padding:0}
+.devis-table .devis-origin td{background:#f8fbf9;padding:14px 16px 14px 70px;color:#1b2f29}
+.line-origin{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.line-origin h5{margin:0 0 8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#2f6b57}
+.line-origin dl{margin:0;display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:12.5px}.line-origin dt{color:#718078}.line-origin dd{margin:0;display:grid;gap:3px;line-height:1.45}
+.line-origin dd small{color:#718078;font-size:11px;margin-left:6px}.line-origin .src{display:block}.line-origin mark{background:#fff3b0;border-radius:4px;padding:0 4px;font-weight:700}
+.devis-archived{margin:0;font-size:12px;color:#6b4f08;background:#fff8e6;border:1px solid #f0d9a0;border-radius:10px;padding:8px 12px}
+
+/* alignement : toutes les cases d'une ligne partent du même haut (champs de 36 px), les légendes passent dessous sans décaler les voisines */
+.devis-table .devis-row td{vertical-align:top;padding-top:12px;padding-bottom:12px}
+.devis-table td.name,.devis-table td.desc{padding-top:11px}
+.devis-table td.total{height:36px;line-height:36px;padding-top:12px;padding-bottom:12px;box-sizing:content-box}
+.devis-table .devis-row td:nth-child(8){padding-top:17px}
+.devis-table td.act{padding-top:14px}
+.devis-table td.price,.devis-table td.num{vertical-align:top}
+.unit-origin,.price-origin{min-height:30px}
+.devis-table td.num .qty-origin{display:block;min-height:30px;margin-top:4px;font-size:10.5px;color:#8a978f;text-align:right}
+
+.memory-suggestion{display:block;margin-top:4px;font-size:10.5px;line-height:1.35;color:#2a4a78;background:#eef3fb;border-radius:8px;padding:4px 7px}.memory-suggestion small{display:block;color:#6b7f9d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}.memory-suggestion button{border:0;background:transparent;font:inherit;font-weight:700;color:#2f6b57;text-decoration:underline;cursor:pointer;padding:0}
+.price-library{background:#fff;border:1px solid #e3e7e0;border-radius:16px;padding:18px 22px;margin:0 0 18px}.price-library h3{margin:0 0 6px;font:600 16px Manrope}.price-library p{margin:0 0 12px;color:#667a72;font-size:12.5px;line-height:1.5}.price-library ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}.price-library li{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12.5px;background:#f6f8f4;border-radius:9px;padding:7px 11px}.price-library li small{color:#7a8a83}.price-library label.upload{display:inline-flex;gap:7px;align-items:center;border:1px dashed #9fb5a9;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:650;cursor:pointer;color:#17372e}.price-library .err{color:#8a2f25;font-size:12px;margin-top:8px}.price-library li button{border:0;background:transparent;color:#8a2f25;cursor:pointer;font-size:12px}
+
+.refs-chip{display:block;margin-top:4px;font-size:10.5px;line-height:1.35}.refs-chip button{border:0;background:#eaf2ec;color:#1d6a43;border-radius:8px;padding:3px 7px;font:inherit;font-weight:700;cursor:pointer;margin:0 4px 3px 0}.refs-list{display:grid;gap:3px;font-size:10.5px;color:#52665e;background:#f6f8f4;border-radius:8px;padding:6px 8px;margin-top:3px}.refs-list b{color:#17372e}
+
+.devis-policy-title{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#2f6b57}
+.standard-prices{margin-bottom:18px}.standard-empty{margin:0;font-size:12.5px;color:#667a72;background:#f6f8f4;border-radius:10px;padding:10px 12px}
+.standard-table{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;border-radius:10px;overflow:hidden}.standard-table th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#7a8a83;padding:8px 10px;border-bottom:1px solid #e6eae4}.standard-table td{padding:8px 10px;border-bottom:1px solid #f0f2ee;vertical-align:top}.standard-table td small{display:block;color:#7a8a83;font-size:10.5px;margin-top:2px}
+.standard-table input{width:90px;border:1px solid #d5dcd4;border-radius:8px;padding:6px 8px;font:inherit}.standard-table select{border:1px solid #d5dcd4;border-radius:8px;padding:6px 8px;font:inherit}
+.standard-actions{white-space:nowrap}.standard-actions button{border:1px solid #cfd8d0;background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;margin-right:6px}.standard-actions button:disabled{opacity:.45;cursor:default}
+.origin-badge{display:inline-block;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;background:#eceeea;color:#52665e}.origin-badge.o-MANUAL{background:#e6edf7;color:#2a4a78}.origin-badge.o-LIBRARY{background:#fff3d6;color:#7a5a08}.origin-badge.o-AWARDED{background:#dff1e6;color:#1d6a43}
+.standard-msg{font-size:12px;color:#1d6a43;margin:8px 0 0}
+
+.devis-pl-policy .custom-actions{display:flex;gap:8px;align-items:center}.custom-remove{border:0;background:transparent;color:#8a2f25;font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.custom-add{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed #d5dcd4}.custom-add input{flex:1 1 240px;border:1px solid #d5dcd4;border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}.custom-add button{border:1px solid #cfd8d0;background:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;display:inline-flex;gap:6px;align-items:center}.custom-add button:disabled{opacity:.5;cursor:default}
