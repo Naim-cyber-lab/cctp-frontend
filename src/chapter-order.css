@@ -2,7 +2,10 @@
   position: relative;
   display: block;
   padding: 0;
+  cursor: grab;
+  transition: background .14s ease, opacity .14s ease, transform .14s ease;
 }
+.draft-row:active { cursor: grabbing; }
 
 .draft-row-open {
   width: 100%;
@@ -40,32 +43,29 @@
 .draft-row.is-dragging { opacity: .42; background: #edf3ee; }
 .draft-row.is-drop-target::before { content: ''; position: absolute; z-index: 4; left: 12px; right: 12px; top: -2px; height: 3px; border-radius: 3px; background: var(--green); }
 
-.row-order {
+@media(max-width:650px) {
+  .draft-row-open { grid-template-columns: 25px 1fr 16px; padding: 19px 46px 19px 42px; }
+}
+
+/* Crayon d'édition rapide : dans la ligne (à droite, centré), et non posé sous elle. */
+.draft-row > .row-quick-edit {
   position: absolute;
-  right: 42px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  width: 30px;
+  height: 30px;
 }
+.draft-row-open { padding-right: 50px; }
+@media(max-width:650px) { .draft-row > .row-quick-edit { right: 2px; } }
 
-.row-order button {
-  width: 25px;
-  height: 22px;
-  border: 0;
-  border-radius: 6px;
-  background: #f0f3ee;
-  color: #53655e;
-  display: grid;
-  place-items: center;
-  padding: 0;
-}
+/* En-tête du brouillon : deux boutons de même taille, côte à côte, à la même échelle que le reste de l'interface. */
+.draft-head-actions { flex-wrap: nowrap; align-items: center; }
+.draft-head-actions button { height: 38px; padding: 0 14px; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+@media(max-width:650px) { .draft-head-actions { flex-wrap: wrap; } }
 
-.row-order button:hover:not(:disabled) { background: #dfe9e1; color: var(--green); }
-.row-order button:disabled { opacity: .25; cursor: not-allowed; }
-
-@media(max-width:650px) {
-  .draft-row-open { grid-template-columns: 25px 1fr 16px; padding: 19px 72px 19px 42px; }
-  .row-order { right: 38px; }
-}
+/* Suppression d un lot : à gauche du crayon */
+.draft-row > .row-quick-edit.row-delete{right:44px;color:#a4473c}
+.draft-row > .row-quick-edit.row-delete:hover{background:#fff0ed;color:#a4473c}
+.draft-row-open{padding-right:88px}
+@media(max-width:650px){.draft-row > .row-quick-edit.row-delete{right:36px}.draft-row-open{padding-right:80px}}

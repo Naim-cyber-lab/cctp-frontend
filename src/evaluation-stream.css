@@ -1,3 +1,0 @@
-.stream-caret{display:inline-block!important;width:2px;height:1em;margin-left:3px;vertical-align:-2px;background:currentColor;animation:streamBlink .8s steps(1) infinite}
-@keyframes streamBlink{50%{opacity:0}}
-.project-evaluation-clickable{cursor:pointer;position:relative;transition:transform .15s ease,box-shadow .15s ease}.project-evaluation-clickable:hover{transform:translateY(-1px);box-shadow:0 5px 14px #20312c14}.project-evaluation-clickable:focus-visible{outline:2px solid #416b89;outline-offset:2px}.evaluation-home-backdrop{position:fixed;inset:0;z-index:31;background:#16251f45;backdrop-filter:blur(2px)}

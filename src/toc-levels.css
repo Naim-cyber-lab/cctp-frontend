@@ -12,3 +12,6 @@
 .paper-toc .toc-sublevel-2 span,
 .paper-toc .toc-sublevel-3 span { color: #65716b; font-size: 8.5px; font-weight: 500; }
 @media(max-width:600px){.paper-toc .toc-sublevel-1{margin-left:14px}.paper-toc .toc-sublevel-2{margin-left:27px}.paper-toc .toc-sublevel-3{margin-left:40px}}
+
+.toc-target-flash{animation:tocFlash 1.6s ease-out}@keyframes tocFlash{0%,40%{background:#fff3c4}100%{background:transparent}}
+.paper-toc a[data-toc-link]{cursor:pointer}

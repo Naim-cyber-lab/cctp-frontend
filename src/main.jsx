@@ -1,4 +1,6 @@
-import React from 'react';
+import { PageErrorBoundary } from './components/PageErrorBoundary';
+import { VoiceProvider } from './hooks/VoiceContext';
+import './page-recovery.css';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
@@ -38,5 +40,28 @@ import './toc-levels.css';
 import './cover-logo-library.css';
 import './ai-focus-mode.css';
 import './prompt-memo.css';
+import './reference-cover-presets.css';
+import './cover-template-editor.css';
+import './cover-reconstruction.css';
+import './cover-reconstruction-preview.css';
+import './selected-cover-cleanup.css';
+import './reference-document-theme.css';
+import './cover-origin-choice.css';
+import './assistant-direct-compare.css';
+import './assistant-comparison.css';
+import './workspace-tabs.css';
+import './workspace.css';
+import './layouts.css';
+import './mode-switch.css';
+import './cover-comparison.css';
+import './lot-manager.css';
+import './draft-inline-editor.css';
+import './imported-document-images.css';
+import './watermark.css';
+import './chapter-start.css';
+import './collaboration.css';
+import './project-centric.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><AuthProvider><App /></AuthProvider></React.StrictMode>);
+// StrictMode remonte volontairement tous les composants deux fois en développement.
+// Sur de gros CCTP cela doublait les appels API, les scans orthographiques et le rendu.
+ReactDOM.createRoot(document.getElementById('root')).render(<PageErrorBoundary><AuthProvider><VoiceProvider><App /></VoiceProvider></AuthProvider></PageErrorBoundary>);
