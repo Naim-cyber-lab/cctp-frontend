@@ -1,0 +1,77 @@
+.canon { display: grid; gap: 12px; margin-top: 18px; max-width: 980px; }
+.canon-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.canon-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 10px; }
+.canon-card h3 { margin: 0; font: 600 16px Manrope, sans-serif; }
+.canon-card label { display: grid; gap: 4px; font-size: 13px; }
+.canon-card input:not([type=checkbox]), .canon-card select, .canon-card textarea { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: #fff; font: inherit; }
+.canon-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.canon-row > label { flex: 1 1 160px; }
+.canon-site, .canon-inv, .canon-scenario { display: grid; gap: 8px; border: 1px solid #eef0ea; border-radius: 10px; padding: 12px; background: #fbfbf8; }
+.canon-scenario { background: #fff; border-color: var(--line); }
+.canon-advanced { border: 1px dashed #b9c4be; border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; background: #f7f9f5; }
+.canon-budget .canon-ceiling { border: 2px solid #c9a227; border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; background: #fffaf0; }
+.canon-framework-note { background: #fffaf0; border: 1px solid #ecd68a; border-radius: 8px; padding: 6px 10px; font-size: 12px; }
+.canon-table { border-collapse: collapse; font-size: 12px; width: 100%; }
+.canon-table th, .canon-table td { padding: 4px 5px; text-align: left; border-bottom: 1px solid #eef0ea; }
+.canon-table input, .canon-table select { width: 100%; min-width: 70px; }
+.canon-target { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; padding-left: 8px; border-left: 4px solid #8a9690; }
+.canon-target.TARGET { border-left-color: #c9a227; }
+.canon-target.ACHIEVED { border-left-color: #2e7455; background: #f0f7f2; }
+.canon-check { display: inline-flex !important; grid-auto-flow: column; align-items: center; gap: 6px !important; margin-right: 10px; }
+.canon-issues { background: #fff6dc; border: 1px solid #ecd68a; border-radius: 12px; padding: 10px 14px; display: grid; gap: 6px; font-size: 13px; }
+.canon-issues ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.canon-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 700; margin-right: 6px; }
+.canon-badge.bad { background: #f9dcd6; color: #8c2f23; }
+.canon-badge.warn { background: #fff0c4; color: #7a5d00; }
+.canon-hint, .canon-derived { color: #5d6b65; font-size: 12px; margin: 0; }
+.canon-notice { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; background: #fff; display: grid; gap: 8px; }
+.canon-notice h5 { margin: 8px 0 2px; font-size: 14px; }
+.canon-draft { background: #fff6dc; border-radius: 8px; padding: 6px 10px; font-size: 12px; }
+.canon-blocked { background: #f9dcd6; border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+
+.est-table td { vertical-align: top; }
+.est-table .est-origin { display: block; color: var(--muted); font-size: 11px; }
+.est-table .est-label-edit { display: block; margin-top: 4px; width: 100%; }
+.est-qty input { width: 84px; }
+.est-price { min-width: 170px; }
+.est-price b { font-size: 14px; }
+.est-price small { display: block; color: var(--muted); font-size: 11px; }
+.est-price small.warn { color: #9a5b00; }
+.est-price input { width: 100px; }
+.est-edit { margin-left: 4px; }
+.est-use { display: inline-block; margin-top: 4px; padding: 2px 10px; border: 1px solid #1f5a46; background: #eef6f1; color: #1f5a46; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.est-tochiffrer { color: #6b6f66; font-weight: 600; }
+.est-total { white-space: nowrap; font-weight: 600; }
+.est-state { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef0ea; color: #3b4038; white-space: nowrap; }
+.est-state.st-PRICED { background: #e3f1e8; color: #1f5a46; }
+.est-state.st-PROPOSED { background: #e8f0fb; color: #25508f; }
+.est-state.st-TO_CONFIRM { background: #fff3d6; color: #8a5a00; }
+.est-state.st-EXCLUDED { background: #eee; color: #777; }
+.est-actions { width: 40px; text-align: right; }
+.row-menu { position: relative; display: inline-block; }
+.row-menu > summary { list-style: none; cursor: pointer; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
+.row-menu > summary::-webkit-details-marker { display: none; }
+.row-menu[open] > summary { background: #eef0ea; }
+.row-menu-list { position: absolute; right: 0; z-index: 20; min-width: 230px; display: grid; background: #fff; border: 1px solid var(--line, #dde2d8); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 4px; text-align: left; }
+.row-menu-list button { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.row-menu-list button:hover { background: #f3f5ef; }
+
+/* bordereau économique (carte 714) : lignes aérées, valeurs en texte, prix dominant */
+.est-clean tbody tr:not([data-feas-detail-row]) { height: 60px; border-bottom: 1px solid #eef0ea; cursor: default; }
+.est-clean tbody tr.selected { background: #f6f9f5; }
+.est-clean td { vertical-align: middle; padding: 10px 8px; }
+.est-clean .est-value { background: none; border: 0; padding: 2px 4px; margin: -2px -4px; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
+.est-clean .est-value:hover:not(:disabled) { background: #eef0ea; }
+.est-clean .est-value:disabled { cursor: default; }
+.est-clean .est-main b { font-size: 16px; }
+.est-clean .est-sub { display: block; color: var(--muted, #6b7066); font-size: 11.5px; line-height: 1.35; }
+.est-clean .est-range { color: #7b8076; }
+.est-clean .est-missing { color: #8a8f84; }
+.est-clean .est-tochiffrer { color: #8a5a00; font-weight: 600; }
+.est-clean .est-use { background: none; border: 0; padding: 0; color: #1f5a46; font-size: 12px; font-weight: 600; text-decoration: underline; cursor: pointer; display: block; margin-top: 2px; }
+.est-clean .est-confirm { color: #8a5a00; }
+.est-clean .est-edit input { width: 90px; }
+.est-header { display: grid; gap: 4px; margin-bottom: 8px; }
+.est-header h4 { margin: 0; }
+.est-current { margin: 0; font-size: 15px; }
+.est-clean .est-sub.warn { color: #9a5b00; }

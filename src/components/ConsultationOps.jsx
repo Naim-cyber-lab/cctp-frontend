@@ -2,7 +2,8 @@ import { offerStatusLabel, offerStatusDetail } from "../utils/statuses";
 import { useCallback, useEffect, useState } from "react";
 import { Download, LoaderCircle, Send } from "lucide-react";
 import { apiFetch } from "../api/client";
-import { OfferImport, OfferReview, PointsPanel, ReferencesFeed } from "./ConsultationDpgf";
+import { OfferImport, ReferencesFeed } from "./ConsultationDpgf";
+import { Analysis } from "./ConsultationAnalysis";
 
 const money = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const dateTime = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
@@ -20,7 +21,7 @@ const AUDIT = {
 };
 // Quatre entrées au premier niveau : Suivi | Analyse (comparatif → attribution) | Échanges | Plus ▾ (planning, indices, notes, journal, export)
 const ANALYSIS = [["compare", "Comparatif"], ["award", "Attribution"]];
-const MORE = [["planning", "Planning"], ["revisions", "Indices"], ["notes", "Notes"], ["audit", "Journal"], ["export", "Export"]];
+const MORE = [["settings", "Paramètres de consultation"], ["planning", "Planning"], ["revisions", "Indices"], ["notes", "Notes"], ["audit", "Journal"], ["export", "Export"]];
 
 async function download(path, name) {
   const response = await fetch(`${API}${path}`, { credentials: "include" });
@@ -54,7 +55,8 @@ export function ConsultationOps({ data, id, project, run, setLinks, onError, tab
       </nav>
       {inAnalysis && <nav className="ops-secondary-tabs" data-ops-secondary aria-label="Analyse">{ANALYSIS.map(([key, label]) => <button key={key} type="button" className={tab === key ? "active" : ""} data-ops-tab={key} onClick={() => setTab(key)}>{label}</button>)}</nav>}
       {tab === "tracking" && <Tracking {...shared} />}
-      {tab === "compare" && <Compare {...shared} />}
+      {tab === "compare" && <Analysis {...shared} />}
+      {tab === "settings" && <Settings {...shared} />}
       {tab === "exchanges" && <Exchanges {...shared} />}
       {tab === "award" && <Award {...shared} />}
       {tab === "planning" && <Planning {...shared} />}
@@ -77,9 +79,12 @@ function useLoad(path, deps) {
 const Loading = ({ error }) => <div className="quotes-loading">{error ? error : <><LoaderCircle className="spin" /> Chargement…</>}</div>;
 
 // --- CONSULT-12 : suivi ----------------------------------------------------------------------------------------------------------------
-function Tracking({ id, revision, run, setLinks, goTo, onError }) {
+const SOURCE = { COMPANY_PORTAL: "Portail entreprise", EXCEL_IMPORT: "Import Excel", PDF_IMPORT: "Import PDF", FREE_QUOTE: "Devis libre", MANUAL: "Saisie manuelle" };
+
+function Tracking({ id, data, revision, run, setLinks, goTo, onError }) {
   const [t, error, load] = useLoad(`/consultations/${id}/tracking`, [revision]);
   const [offer, setOffer] = useState(null);
+  const [importing, setImporting] = useState(null);
   if (!t) return <Loading error={error} />;
   const remind = (companyIds) => run(async () => { const result = await apiFetch(`/consultations/${id}/remind`, { method: "POST", body: JSON.stringify({ companyIds }) }); setLinks(result.invitations); load(); });
   const open = async (companyId, lotId) => { try { setOffer({ ...(await apiFetch(`/consultations/${id}/offers/${companyId}/${lotId}`)), companyId }); } catch (e) { onError(e.message); } };
@@ -93,18 +98,21 @@ function Tracking({ id, revision, run, setLinks, goTo, onError }) {
       </div>
       {t.lots.map((lot) => (
         <article className="consult-card" key={lot.lotId} data-ops-lot={lot.lotId}>
-          <h3>Lot {lot.lotId} · {lot.title}</h3>
+          <h3>Lot {lot.lotId} · {lot.title} <button type="button" data-offer-import-open onClick={() => setImporting({ lot, companyId: null })}>Importer une offre reçue</button></h3>
           <p className="consult-hint">Estimation MOE : <b>{lot.estimateAmount ? money.format(lot.estimateAmount) : "—"}</b> (confidentielle)</p>
-          <table className="consult-table compact"><thead><tr><th>Entreprise</th><th>État</th><th>Offre</th><th /></tr></thead><tbody>
+          <table className="consult-table compact"><thead><tr><th>Entreprise</th><th>État</th><th>Offre</th><th>Origine</th><th /></tr></thead><tbody>
             {lot.companies.map((c) => <tr key={c.companyId} data-ops-company={c.companyId}><td><b>{c.name}</b></td><td><span className={`company-status c-${c.status}`} data-offer-status={offerStatusLabel(c.status)} title={offerStatusDetail(c.status)}>{offerStatusLabel(c.status)}</span></td>
-              <td>{c.offerTotal !== null ? <b>{money.format(c.offerTotal)}</b> : "—"}{c.version > 1 ? <small> V{c.version}</small> : null}</td>
+              <td>{c.offerTotal !== null ? <b>{money.format(c.offerTotal)}</b> : "—"}{c.version > 0 ? <small data-tracking-version> V{c.version}</small> : null}</td>
+              <td data-offer-source>{c.hasOffer ? (SOURCE[c.sourceType] || SOURCE.COMPANY_PORTAL) : "—"}</td>
               <td>{c.hasOffer && <button data-ops-open-offer onClick={() => open(c.companyId, lot.lotId)}>Ouvrir offre</button>}
+                {c.hasOffer && <button data-offer-import-company onClick={() => setImporting({ lot, companyId: c.companyId })}>Importer une version</button>}
                 {["INVITED", "OPENED", "IN_PROGRESS"].includes(c.status) && ["PUBLISHED", "IN_PROGRESS"].includes(t.status) && <button data-ops-remind onClick={() => remind([c.companyId])}>Relancer</button>}
-                {c.hasOffer && <button data-ops-compare onClick={() => goTo("compare")}>Comparer</button>}</td></tr>)}
+                </td></tr>)}
           </tbody></table>
         </article>
       ))}
       {offer && <OfferModal offer={offer} id={id} onClose={() => setOffer(null)} />}
+      {importing && <OfferImport id={id} data={data} lot={importing.lot} companyId={importing.companyId} run={run} onClose={() => setImporting(null)} onDone={() => { setImporting(null); load(); }} />}
     </section>
   );
 }
@@ -141,98 +149,34 @@ function OfferModal({ offer, id, onClose }) {
   );
 }
 
-// --- CONSULT-13/14/15 : comparateur ligne par ligne + synthèse --------------------------------------------------------------------------
-function Compare({ data, id, revision, run, onError }) {
+// --- Paramètres de consultation (seuils, documents, relances, sécurité, visibilité) : hors de la page d'analyse --------------------------------
+function Settings({ data, id, revision, run }) {
   const [a, error, load] = useLoad(`/consultations/${id}/analysis`, [revision]);
-  const [clar, setClar] = useState(null);
-  const [high, setHigh] = useState(null);
-  const [low, setLow] = useState(null);
-  const [docs, setDocs] = useState(null);
-  const [flags, setFlags] = useState({});
-  const [importing, setImporting] = useState(null);
+  const [values, setValues] = useState({}), [docs, setDocs] = useState(null), [flags, setFlags] = useState({});
   if (!a) return <Loading error={error} />;
+  const num = (key, fallback) => (key in values ? values[key] : fallback);
   const flag = (key) => (key in flags ? flags[key] : Boolean(data.settings?.[key] ?? (key === "autoReminders")));
-  const saveSettings = () => run(async () => { await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ thresholdHigh: Number(high ?? a.thresholds.high), thresholdLow: Number(low ?? a.thresholds.low), ...(docs !== null ? { requiredDocuments: docs.split(",").map((s) => s.trim()).filter(Boolean) } : {}), ...flags }) }); load(); });
-  const decide = (company, lot, kind, itemId, status) => run(async () => { await apiFetch(`/consultations/${id}/decisions`, { method: "PUT", body: JSON.stringify({ companyId: company.companyId, lotId: lot.lotId, kind, itemId, status }) }); load(); });
-  const sendClar = () => run(async () => { await apiFetch(`/consultations/${id}/clarifications`, { method: "POST", body: JSON.stringify(clar) }); setClar(null); });
+  const save = () => run(async () => {
+    await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ thresholdHigh: Number(num("high", a.thresholds.high)), thresholdLow: Number(num("low", a.thresholds.low)), significantGap: Number(num("significant", a.thresholds.significant)), atypicalThreshold: Number(num("atypical", a.thresholds.atypical)),
+      ...(docs !== null ? { requiredDocuments: docs.split(",").map((s) => s.trim()).filter(Boolean) } : {}), ...flags }) });
+    load();
+  });
+  const toggle = (key, label) => <label><input type="checkbox" data-ops-switch={key} checked={flag(key)} onChange={(e) => setFlags({ ...flags, [key]: e.target.checked })} /> {label}</label>;
   return (
-    <section data-ops-panel="compare">
-      <article className="consult-card" data-ops-settings>
-        <h3>Seuils d'alerte et documents demandés</h3>
+    <section data-ops-panel="settings" data-ops-settings>
+      <h3>Paramètres de consultation</h3>
+      <article className="consult-card" data-settings-group="thresholds"><h4>Seuils d’analyse</h4>
         <div className="consult-row">
-          <label>Écart haut (%)<input type="number" data-ops-threshold-high value={high ?? a.thresholds.high} onChange={(e) => setHigh(e.target.value)} /></label>
-          <label>Écart bas (%)<input type="number" data-ops-threshold-low value={low ?? a.thresholds.low} onChange={(e) => setLow(e.target.value)} /></label>
-          <label>Documents obligatoires (séparés par des virgules)<input type="text" data-ops-required-docs value={docs ?? a.requiredDocuments.join(", ")} onChange={(e) => setDocs(e.target.value)} /></label>
-          <button data-ops-save-settings onClick={saveSettings}>Enregistrer</button>
-        </div>
-        <div className="consult-switches" data-ops-switches>
-          <label><input type="checkbox" data-ops-switch="autoReminders" checked={flag("autoReminders")} onChange={(e) => setFlags({ ...flags, autoReminders: e.target.checked })} /> Relances automatiques à J-3 et J-1</label>
-          <label><input type="checkbox" data-ops-switch="deviceConfirmation" checked={flag("deviceConfirmation")} onChange={(e) => setFlags({ ...flags, deviceConfirmation: e.target.checked })} /> Confirmation par code e-mail sur un nouvel appareil (un lien transféré ne suffit plus)</label>
-          <label><input type="checkbox" data-ops-switch="hideEstimatesFromReaders" checked={flag("hideEstimatesFromReaders")} onChange={(e) => setFlags({ ...flags, hideEstimatesFromReaders: e.target.checked })} /> Estimation réservée : les relecteurs en lecture seule ne la voient pas</label>
-        </div>
-      </article>
-      <PointsPanel id={id} revision={revision} lots={a.lots} companies={[...new Map(a.lots.flatMap((l) => l.companies).map((c) => [c.companyId, c])).values()]}
-        onAsk={(p) => setClar({ companyId: p.companyId, lotId: p.lotId, lineKey: p.lineKey, body: `Merci de confirmer ou justifier : ${p.typeLabel.toLowerCase()} — ${p.designation}.` })} />
-      {a.lots.map((lot) => (
-        <article className="consult-card" key={lot.lotId} data-ops-analysis={lot.lotId}>
-          <h3>Lot {lot.lotId} · {lot.title}</h3>
-          {!lot.companies.length ? <p className="consult-hint">Aucune offre remise.</p> : <>
-            <p className="consult-hint">Le montant comparé est toujours la base : quantités du DCE × prix unitaires. Options, variantes et réserves sont présentées à part et jamais ajoutées automatiquement.</p>
-            <div className="table-scroll"><table className="consult-table compact" data-ops-synthesis><thead><tr><th>Entreprise</th><th>Base HT (qté DCE)</th><th>Écart / estimation</th><th>Options</th><th>Variantes</th><th>Réserves</th><th>Quantités</th><th>Non chiffrées</th><th>Documents manquants</th></tr></thead><tbody>
-              <tr className="estimate-row"><td><b>Estimation MOE</b></td><td><b>{lot.estimateAmount ? money.format(lot.estimateAmount) : "—"}</b></td><td colSpan="7" /></tr>
-              {[...lot.companies].sort((x, y) => (x.rank || 99) - (y.rank || 99)).map((c) => <tr key={c.companyId} data-ops-synthesis-row><td>{c.rank ? `${c.rank}. ` : ""}{c.company} <small>V{c.version}</small></td><td><b>{c.total !== null ? money.format(c.total) : "—"}</b></td>
-                <td>{c.gap === null ? "—" : `${c.gap > 0 ? "+" : ""}${c.gap} %`}</td>
-                <td data-ops-col="options">{c.options.length ? `${c.options.filter((o) => o.priced).length}/${c.options.length} chiffrée${c.options.length > 1 ? "s" : ""}` : "—"}</td>
-                <td data-ops-col="variants">{c.variants.length ? <span className="portal-warn">{c.variants.length} variante{c.variants.length > 1 ? "s" : ""}</span> : "—"}</td>
-                <td data-ops-col="reservations">{c.reservations.length ? <span className="portal-warn">⚠ {c.reservations.length} réserve{c.reservations.length > 1 ? "s" : ""}</span> : <span className="ok-text">✓ aucune réserve</span>}</td>
-                <td data-ops-col="quantities">{c.quantityChanged ? <span className="portal-warn">⚠ {c.quantityChanged} quantité{c.quantityChanged > 1 ? "s" : ""} différente{c.quantityChanged > 1 ? "s" : ""}</span> : <span className="ok-text">✓ aucune quantité modifiée</span>}</td>
-                <td>{c.missingLines || "—"}</td><td>{c.missingDocuments.join(", ") || "—"}</td></tr>)}
-            </tbody></table></div>
-            {lot.companies.map((c) => (c.options.length || c.variants.length || c.reservations.length || c.quantityDisputes.length) ? <div className="ops-company-detail" key={c.companyId} data-ops-company-detail={c.company}>
-              <h4>{c.company} <small>· base {c.total !== null ? money.format(c.total) : "—"}</small></h4>
-              {c.options.length > 0 && <div data-ops-block="options"><h5>Options demandées</h5>{c.options.map((o) => <div className="ops-item" key={o.id} data-ops-option>
-                <span><b>{o.label}</b> {o.required && <small>(obligatoire)</small>}</span>
-                <span>{o.includedInBase ? "Inclus dans la base" : o.amount != null ? money.format(o.amount) : <span className="portal-warn">non chiffrée</span>}{o.comment ? ` · ${o.comment}` : ""}</span>
-                {o.baseWithOption != null && <span data-ops-base-plus-option>Base + option sélectionnée : <b>{money.format(o.baseWithOption)}</b></span>}
-                <span className="ops-decide">{[["SELECTED", "Retenir"], ["NOT_SELECTED", "Ne pas retenir"]].map(([st, label]) => <button key={st} className={o.status === st ? "primary" : ""} data-ops-option-decide={st} onClick={() => decide(c, lot, "OPTION", o.id, o.status === st ? "" : st)}>{label}</button>)}</span></div>)}</div>}
-              {c.variants.length > 0 && <div data-ops-block="variants"><h5>Variantes proposées</h5>{c.variants.map((v) => <div className="ops-item" key={v.id} data-ops-variant>
-                <span><b>{v.title}</b>{v.description ? ` — ${v.description}` : ""}</span>
-                <span>Incidence : {v.priceImpact != null ? `${v.priceImpact > 0 ? "+" : ""}${money.format(v.priceImpact)}` : "non précisée"}{v.delayImpact != null ? ` · délai ${v.delayImpact > 0 ? "+" : ""}${v.delayImpact} j` : ""}</span>
-                {v.totalIfRetained != null && <span data-ops-total-if-variant>Montant si variante retenue (information) : <b>{money.format(v.totalIfRetained)}</b></span>}
-                <span className="ops-decide">{[["RETAINED", "Retenir"], ["NOT_RETAINED", "Ne pas retenir"]].map(([st, label]) => <button key={st} className={v.status === st ? "primary" : ""} data-ops-variant-decide={st} onClick={() => decide(c, lot, "VARIANT", v.id, v.status === st ? "" : st)}>{label}</button>)}</span></div>)}</div>}
-              {c.reservations.length > 0 && <div data-ops-block="reservations"><h5>Réserves</h5>{c.reservations.map((r) => <div className="ops-item" key={r.id} data-ops-reservation>
-                <span><b>{r.subject}</b>{r.description ? ` — ${r.description}` : ""}</span>
-                <span>{r.financialImpact != null ? `Incidence : ${money.format(r.financialImpact)}` : "Sans incidence chiffrée"}{r.delayImpact != null ? ` · délai ${r.delayImpact} j` : ""}{r.severity ? ` · gravité ${{ LOW: "faible", MEDIUM: "moyenne", HIGH: "élevée" }[r.severity]}` : ""}</span>
-                <label>Statut MOE <select value={r.status} data-ops-reservation-status onChange={(e) => decide(c, lot, "RESERVATION", r.id, e.target.value)}>{Object.entries(RESERVATION_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label></div>)}</div>}
-              {c.quantityDisputes.length > 0 && <div data-ops-block="quantities"><h5>Quantités contestées</h5>{c.quantityDisputes.map((q) => <div className="ops-item" key={q.lineKey} data-ops-quantity-dispute>
-                <span><b>{q.designation}</b></span><span>DCE : {q.quantity} · estimée par l'entreprise : <b>{q.disputedQuantity}</b></span><span>Justification : {q.justification}</span></div>)}
-                {c.totalCompanyQuantities != null && <p className="consult-hint">Montant selon les quantités de l'entreprise (information, non comparable) : {money.format(c.totalCompanyQuantities)}</p>}</div>}
-            </div> : null)}
-            <OfferReview lot={lot} id={id} run={run} reload={load} onImport={(companyId) => setImporting({ lot, companyId })} canAward={["CLOSED", "ANALYSIS", "AWARDED"].includes(data.status)} />
-            <h4>Comparaison ligne par ligne</h4>
-            <div className="portal-table-wrap"><table className="consult-table compact" data-ops-lines><thead><tr><th>Ligne</th><th>Qté</th><th>Estimation MOE</th>{lot.companies.map((c) => <th key={c.companyId}>{c.company}</th>)}</tr></thead><tbody>
-              {lot.lines.map((line) => <tr key={line.key} data-ops-line={line.key}><td>{line.designation}</td><td>{line.quantity ?? "—"} {line.unit}</td><td>{line.estimateUnitPrice ? money.format(line.estimateUnitPrice) : "—"}</td>
-                {lot.companies.map((c) => { const o = line.offers[c.companyId] || { flags: [] }; return <td key={c.companyId} className={o.flags.length ? "flagged" : ""} data-ops-cell>
-                  {o.unitPrice === null || o.unitPrice === undefined ? "—" : money.format(o.unitPrice)}{o.gap !== null && o.gap !== undefined ? <small> {o.gap > 0 ? "+" : ""}{o.gap} %</small> : null}
-                  {o.flags.map((f) => <span key={f} className={`flag f-${f}`} data-ops-flag={f} title={FLAG[f]}>{FLAG_ICON[f]}</span>)}
-                  {o.atypical && <span className="flag f-ATYPICAL" data-ops-atypical title={o.atypical.label}>{FLAG_ICON.ATYPICAL}</span>}
-                  {o.arithmetic && <span className="flag f-ARITHMETIC" data-ops-arithmetic title={`Total déclaré ${money.format(o.arithmetic.declaredTotal)} ; calcul ${money.format(o.arithmetic.expected)}`}>{FLAG_ICON.ARITHMETIC}</span>}
-                  {o.disputedQuantity != null && <small className="portal-warn" data-ops-dispute-note title={o.justification}>⚠ {c.company} estime la quantité à {o.disputedQuantity} {line.unit}</small>}</td>; })}</tr>)}
-            </tbody></table></div>
-            <p className="consult-hint">{Object.entries(FLAG).map(([k, v]) => <span key={k} className="legend"><span className={`flag f-${k}`}>{FLAG_ICON[k]}</span> {v}</span>)}</p>
-          </>}
-          {lot.anomalies.length > 0 && <div data-ops-anomalies><h4>Anomalies ({lot.anomalies.length})</h4><ul className="consult-docs">
-            {lot.anomalies.map((an, i) => <li key={i} data-ops-anomaly><b>{an.company}</b> · {an.designation} · {an.detail || an.label}{!an.detail && an.gap !== null ? ` (${an.gap > 0 ? "+" : ""}${an.gap} %)` : ""}
-              <button data-ops-ask onClick={() => setClar({ companyId: an.companyId, lotId: an.lotId, lineKey: an.lineKey, body: an.type === "NOT_PRICED" ? "Merci de confirmer si cette prestation est comprise dans un autre prix ou oubliée." : `Merci de confirmer ou justifier : ${an.label}.` })}>Demander une précision</button></li>)}
-          </ul></div>}
-          {lot.mainGaps.length > 0 && <p className="consult-hint" data-ops-maingaps>Écarts principaux : {lot.mainGaps.map((g) => `${g.designation} (${g.company}, ${g.gap > 0 ? "+" : ""}${g.gap} %)`).join(" ; ")}</p>}
-        </article>
-      ))}
-      {importing && <OfferImport id={id} data={data} lot={importing.lot} companyId={importing.companyId} run={run} onClose={() => setImporting(null)} onDone={() => { setImporting(null); load(); }} />}
-      {clar && <div className="consult-modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setClar(null)}><div className="consult-modal" role="dialog" aria-modal="true" data-ops-clar-modal>
-        <h3>Demander une précision</h3>
-        <textarea rows="4" value={clar.body} data-ops-clar-body onChange={(e) => setClar({ ...clar, body: e.target.value })} />
-        <div className="consult-buttons"><button className="primary" data-ops-clar-send onClick={sendClar}>Envoyer à l'entreprise</button><button onClick={() => setClar(null)}>Annuler</button></div></div></div>}
+          <label>Écart haut par rapport à l’estimation (%)<input type="number" data-ops-threshold-high value={num("high", a.thresholds.high)} onChange={(e) => setValues({ ...values, high: e.target.value })} /></label>
+          <label>Écart bas par rapport à l’estimation (%)<input type="number" data-ops-threshold-low value={num("low", a.thresholds.low)} onChange={(e) => setValues({ ...values, low: e.target.value })} /></label>
+          <label>Prix atypique entre entreprises (± %)<input type="number" data-ops-threshold-atypical value={num("atypical", a.thresholds.atypical)} onChange={(e) => setValues({ ...values, atypical: e.target.value })} /></label>
+          <label>Écart significatif entre offres (%)<input type="number" data-ops-threshold-significant value={num("significant", a.thresholds.significant)} onChange={(e) => setValues({ ...values, significant: e.target.value })} /></label></div></article>
+      <article className="consult-card" data-settings-group="documents"><h4>Documents demandés</h4>
+        <label>Documents obligatoires (séparés par des virgules)<input type="text" data-ops-required-docs value={docs ?? a.requiredDocuments.join(", ")} onChange={(e) => setDocs(e.target.value)} /></label></article>
+      <article className="consult-card" data-settings-group="reminders"><h4>Relances</h4><div className="consult-switches">{toggle("autoReminders", "Relances automatiques à J-3 et J-1")}</div></article>
+      <article className="consult-card" data-settings-group="security"><h4>Sécurité</h4><div className="consult-switches">{toggle("deviceConfirmation", "Confirmation par code e-mail sur un nouvel appareil (un lien transféré ne suffit plus)")}</div></article>
+      <article className="consult-card" data-settings-group="visibility"><h4>Visibilité</h4><div className="consult-switches">{toggle("hideEstimatesFromReaders", "Estimation réservée : les relecteurs en lecture seule ne la voient pas")}</div></article>
+      <div className="consult-buttons"><button className="primary" data-ops-save-settings onClick={save}>Enregistrer</button></div>
     </section>
   );
 }
@@ -263,9 +207,24 @@ function Exchanges({ data, id, run }) {
 }
 
 // --- CONSULT-17/18/22 : attribution et planning ---------------------------------------------------------------------------------------------
+/** CONSULT-OFFER-LINE-ROLE-01 : lecture d'une offre par rôle de ligne du DCE (ouvrages, plus-values rattachées à leur ouvrage, accessoires…), lignes ajoutées par l'entreprise isolées. */
+function OfferRoles({ offers }) {
+  const withRoles = (offers || []).filter((o) => o.breakdown && (o.breakdown.byRole.length || o.breakdown.addedLines.length || (o.breakdown.quantityGaps || []).length || (o.breakdown.technicalChecks || []).length || o.breakdown.normalization));
+  if (!withRoles.length) return null;
+  return <details data-offer-roles><summary>Lecture des offres par type de ligne</summary>
+    {withRoles.map((o) => <div key={o.companyId} data-offer-roles-company={o.companyId}><h4>{o.company}</h4>
+      <ul>{o.breakdown.byRole.map((r) => <li key={r.role || "other"}>{r.label} : {r.lines} ligne{r.lines > 1 ? "s" : ""} · {money.format(r.amount)}{r.unpriced ? ` · ${r.unpriced} non chiffrée${r.unpriced > 1 ? "s" : ""}` : ""}</li>)}</ul>
+      {o.breakdown.plusValues.length > 0 && <ul data-offer-plus-values>{o.breakdown.plusValues.map((p, i) => <li key={i}>Plus-value « {p.designation} »{p.parent ? ` de « ${p.parent} »` : ""} : {p.amount === null ? "non chiffrée" : money.format(p.amount)}</li>)}</ul>}
+      {o.breakdown.normalization?.comparableAmount !== null && o.breakdown.normalization && <p data-offer-normalization>Montant comparable (quantités du DCE × prix de l’entreprise) : <b>{money.format(o.breakdown.normalization.comparableAmount)}</b>{o.breakdown.normalization.declaredAmount !== null && o.breakdown.normalization.difference !== 0 ? <> · selon les quantités de l’entreprise : {money.format(o.breakdown.normalization.declaredAmount)} ({o.breakdown.normalization.difference > 0 ? "+" : ""}{money.format(o.breakdown.normalization.difference)})</> : null}{o.breakdown.normalization.linesNotNormalizable ? <small className="muted"> · {o.breakdown.normalization.linesNotNormalizable} ligne{o.breakdown.normalization.linesNotNormalizable > 1 ? "s" : ""} non normalisable{o.breakdown.normalization.linesNotNormalizable > 1 ? "s" : ""}</small> : null}</p>}
+      {(o.breakdown.technicalChecks || []).length > 0 && <ul data-offer-technical-checks>{o.breakdown.technicalChecks.map((c, i) => <li key={i} data-technical-check={c.status}>Marque / référence « {c.designation} » : <b>{c.label}</b>{c.brand || c.productReference ? ` — ${[c.brand, c.productReference].filter(Boolean).join(" · ")}` : ""}. {c.reason}</li>)}</ul>}
+      {(o.breakdown.quantityGaps || []).length > 0 && <ul data-offer-quantity-gaps>{o.breakdown.quantityGaps.map((g, i) => <li key={i}>Quantité « {g.designation} » : DCE {g.dceQuantity} {g.unit} · entreprise {g.companyQuantity} {g.unit}. {g.reading}{g.justification ? ` Justification : ${g.justification}.` : ""}{g.origin?.work ? ` Origine CCTP : ${g.origin.work}.` : ""}</li>)}</ul>}
+      {o.breakdown.addedLines.length > 0 && <p data-offer-added>Lignes ajoutées par l’entreprise (hors DCE, comptées à part) : {o.breakdown.addedLines.map((l) => l.designation).join(", ")} — {money.format(o.breakdown.addedAmount || 0)}</p>}
+    </div>)}</details>;
+}
+
 function Award({ data, id, revision, run }) {
   const [c, error] = useLoad(`/consultations/${id}/comparison`, [revision]);
-  const [planning, , loadPlanning] = useLoad(`/cctps/${data.cctpId}/planning`, [revision]);
+  const [planning, , loadPlanning] = useLoad(`/cctps/${data.cctpId}/awarded-planning`, [revision]);
   const [choice, setChoice] = useState({});
   if (!c) return <Loading error={error} />;
   const canAward = ["CLOSED", "ANALYSIS", "AWARDED"].includes(data.status);
@@ -279,6 +238,7 @@ function Award({ data, id, revision, run }) {
         return (
           <article className="consult-card" key={lot.lotId} data-ops-award-lot={lot.lotId}>
             <h3>Lot {lot.lotId} · {lot.title}</h3>
+            <OfferRoles offers={lot.offers} />
             {awarded ? (
               <div data-ops-awarded><dl className="award-grid"><dt>Entreprise retenue</dt><dd data-ops-awarded-company>{awarded.company}{awarded.version ? ` — V${awarded.version}, indice du CCTP ${awarded.revision}` : ""}</dd><dt>Montant</dt><dd>{awarded.amountHt !== null ? `${money.format(awarded.amountHt)} HT` : "—"}</dd>
                 <dt>Estimation MOE</dt><dd>{awarded.estimateAmount ? money.format(awarded.estimateAmount) : "—"}</dd><dt>Écart</dt><dd>{awarded.gap === null ? "—" : `${awarded.gap > 0 ? "+" : ""}${awarded.gap} %`}</dd></dl>
@@ -428,7 +388,7 @@ const fmtDay = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short"
 const fmtMonth = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "2-digit" });
 
 function Planning({ data, revision }) {
-  const [plan, error, load] = useLoad(`/cctps/${data.cctpId}/planning`, [revision]);
+  const [plan, error, load] = useLoad(`/cctps/${data.cctpId}/awarded-planning`, [revision]);
   if (!plan) return <Loading error={error} />;
   const dated = plan.items.filter((i) => i.startDate && i.endDate);
   const times = dated.flatMap((i) => [new Date(i.startDate).getTime(), new Date(i.endDate).getTime()]);

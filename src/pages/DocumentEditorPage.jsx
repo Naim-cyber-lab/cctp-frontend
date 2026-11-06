@@ -40,7 +40,6 @@ import {
 import { useCatalog } from "../catalog/CatalogContext";
 import { downloadCctp, getFormattingPreferences, getCoverSuggestions, getOrganization, getPlatrerieQuestionnaire, getRuleOverrides, proposeTeamClause, setRuleOverride } from "../api/client";
 import { AnswerTrace, fillTemplate } from "../components/AnswerTrace";
-import { SimilarPassages } from "../components/SimilarPassages";
 import { useChapterTrace } from "../utils/answerTraceState";
 import { renumberChapterHtml } from "../utils/chapterNumbering";
 import { DEFAULT_HEADING_STYLES, headingAlign } from "../utils/autoFormat";
@@ -2623,7 +2622,6 @@ export function DocumentEditorPage({ project, onBack, onSave, onUnavailable, onE
           </article>
         </section>
       </div>
-      <SimilarPassages cctpId={project.id} rootSelector=".rich-chapter-body" readOnly={readOnly} />
       <AnswerTrace
         sources={traceSources}
         enabled={plasterTrace.length > 0}

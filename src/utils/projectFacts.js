@@ -4,7 +4,7 @@ const CLOSED = new Set(["CLOSED", "AWARDED", "CANCELLED", "ARCHIVED"]);
 const clamp = (value) => Math.max(0, Math.min(100, Math.round(value || 0)));
 const plural = (count, one, many) => (count > 1 ? many : one);
 
-export function summarizeProject({ project, progress = 0, estimate = null, consultations = [], documents = [] }) {
+export function summarizeProject({ project, progress = 0, estimate = null, consultations = [], documents = [], feasibility = null }) {
   const cctpTotal = project.selected?.length || 0;
   const cctpReady = Math.min(cctpTotal, Math.round(cctpTotal * clamp(progress) / 100));
   const estimateTotal = estimate?.total || 0;
@@ -38,9 +38,21 @@ export function summarizeProject({ project, progress = 0, estimate = null, consu
   return {
     next, bricks,
     cctp: { ready: cctpReady, total: cctpTotal, pct: cctpTotal ? cctpReady / cctpTotal * 100 : 0 },
-    estimate: { done: estimateDone, total: estimateTotal, pct: estimateTotal ? estimateDone / estimateTotal * 100 : 0 },
+    estimate: { done: estimateDone, total: estimateTotal, pct: estimateTotal ? estimateDone / estimateTotal * 100 : 0, documentImported: estimate?.documentImported || 0 },
     consultations: { open: open.length, received, toReview, total: consultations.length },
     documents: documents.length,
+    feasibility: feasibilityLine(feasibility),
     points, attention: points.reduce((sum, point) => sum + point.count, 0),
   };
+}
+
+/** Ligne « Faisabilité » d'un projet : état de l'étude (ou invitation à la créer), données à confirmer, conflits. */
+export function feasibilityLine(feasibility) {
+  if (!feasibility) return { loaded: false, exists: false, label: "…", pct: 0 };
+  if (!feasibility.exists) return { loaded: true, exists: false, label: "Pas encore d’étude", pct: 0, action: feasibility.canCreate ? "Créer l’étude de faisabilité" : "" };
+  const notes = [feasibility.conclusionLabel, feasibility.conflicts ? `${feasibility.conflicts} conflit${feasibility.conflicts > 1 ? "s" : ""}` : "", feasibility.toConfirm ? `${feasibility.toConfirm} donnée${feasibility.toConfirm > 1 ? "s" : ""} à confirmer` : ""].filter(Boolean);
+  const steps = feasibility.steps?.items || [];
+  const done = steps.filter((step) => step.status === "COMPLETED").length;
+  const CTA = { cadrage: "Continuer le cadrage", estimation: "Continuer l’estimation", analyse: "Continuer l’analyse", obtenir: "Voir ce qu’il reste à obtenir", notice: "Préparer la notice" };
+  return { loaded: true, exists: true, label: [feasibility.statusLabel, ...notes].join(" · "), pct: feasibility.status === "VALIDATED" ? 100 : steps.length ? Math.round(done / steps.length * 100) : 50, status: feasibility.status, steps, resume: feasibility.steps?.resume || "", cta: CTA[feasibility.steps?.resume] || "" };
 }

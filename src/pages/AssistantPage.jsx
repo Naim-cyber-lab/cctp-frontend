@@ -40,27 +40,39 @@ import {
   getRuleOverrides,
   listAttachments,
   listChapterMessages,
+  getAssistantFeedback,
   openAttachmentProof,
   setRuleOverride,
   streamGenerateChapter,
   streamPrefillPlatrerieQuestionnaire,
   uploadAttachment,
+  updateAttachment,
 } from "../api/client";
 import { PlatrerieQuestionnaire, questionnaireStats } from "../components/PlatrerieQuestionnaire";
 import { DocumentPrefill } from "../components/DocumentPrefill";
 import { AnswerTrace, fillTemplate } from "../components/AnswerTrace";
-import { SimilarPassages } from "../components/SimilarPassages";
 import { useChapterTrace } from "../utils/answerTraceState";
 import { keepListOnEnter } from "../utils/listEnter";
 import { changedLines, clearMarks, markChanges } from "../utils/aiChange";
+import { diffRows } from "../utils/lineDiff";
+import { AnswerFeedback, isAnswerMessage } from "../components/AnswerFeedback";
 import "../ai-change.css";
 import "../assistant-toolbar.css";
+import "../assistant-ux-v2.css";
+import { ChatMessage, EmptyState, InlineStatus, Suggestions, friendly } from "../components/AssistantThread";
 import { ChapterReusePanel } from "../components/ChapterReusePanel";
 import { ClauseDrawer, ClauseProvenance, insertClauseAtCursor, sectionAtCursor } from "../components/ClauseTools";
+import { InlinePersonalizationDrawer, InlinePersonalizationTrigger } from "../components/InlinePersonalization";
 import { answersIndex } from "../utils/clauses";
 import { ClauseEditor } from "../components/AgencyClauses";
-import { getOrganization, getTeamClause } from "../api/client";
+import { formatChapter, getOrganization, getTeamClause, interpretStyle, contextualizeRequest, observeIntent } from "../api/client";
+import { parseStyleCommand, applyStyleCommands, describeStyles, isCompoundStyle, isEvidentStyle, MODEL_DOWN, STYLE_HELP, STYLE_LEXICON, UNSUPPORTED_LAYOUT, isUnsupportedLayout, blockKind, docMinDepth } from "../utils/styleCommand";
+import { ActionNav } from "../components/ActionNav";
 import { FrenchSpellcheckTooltip } from "../components/FrenchSpellcheckTooltip";
+import { ToSpecifyPopover } from "../components/ToSpecifyPopover";
+import { decorateToSpecify } from "../utils/toSpecify";
+import { generatedPrescriptions } from "../utils/questionnaireGeneration";
+import { chapterSuggestionLabels } from "../utils/assistantSuggestions";
 import {
   renumberChapterHtml,
   renumberChapterText,
@@ -77,6 +89,8 @@ const PRESET_TEMPLATES = {
 };
 const PLACEHOLDER_PATTERN = /\[(?:règle à ajouter|endroit du CCTP à copier-coller ici|passage à reformuler, à copier-coller ici|exigence à préciser|passage à contractualiser, à copier-coller ici)\]/;
 const hasPresetPlaceholder = (text) => PLACEHOLDER_PATTERN.test(text || "");
+// demande de mise en forme pure (« formatage de meilleure qualité », « mets en forme », « mise en page ») : traitée par la mise en forme automatique, pas par la rédaction
+const FORMAT_REQUEST = /\b((re)?formatt?(age|ages|er|e|es|ez|ons)|mise?\s+en\s+(forme|page)|mets?\s+(le\s+|ce\s+|cette\s+)?\w*\s*en\s+(forme|page)|met(tre)?\s+en\s+(forme|page)|typographi\w*)\b/i;
 const isProjectQuestion = (id) => /^Q-(?:P|R)\d+$/.test(id);
 const textToHtml = (value) =>
   value
@@ -226,7 +240,19 @@ export function AssistantPage({
     return stored;
   });
   const [modeCompareOpen, setModeCompareOpen] = useState(false);
-  const [insertMenu, setInsertMenu] = useState(false), [clauseDrawer, setClauseDrawer] = useState(false), [clauseNode, setClauseNode] = useState(null), [clauseSection, setClauseSection] = useState("");
+  const [inlinePassage, setInlinePassage] = useState(null);
+  const [insertMenu, setInsertMenu] = useState(false), [clauseDrawer, setClauseDrawer] = useState(false), [clauseNode, setClauseNode] = useState(null), [specifyNode, setSpecifyNode] = useState(null), [nextPrompt, setNextPrompt] = useState(""), [proposal, setProposal] = useState(null), [applied, setApplied] = useState(null), [selectionText, setSelectionText] = useState(""), [clausePrompt, setClausePrompt] = useState(""), [selectionParagraphs, setSelectionParagraphs] = useState(0), [questionMode, setQuestionMode] = useState(false), [clauseSection, setClauseSection] = useState("");
+  const [plusMenu, setPlusMenu] = useState(false), [changesOpen, setChangesOpen] = useState(false), [newReply, setNewReply] = useState(false);
+  const threadRef = useRef(null), stickRef = useRef(true), scrollSaved = useRef(0), areaRef = useRef(null), workbenchRef = useRef(null);
+  const [assistantWidth, setAssistantWidth] = useState(() => { try { return Number(localStorage.getItem("calepin.assistant.width")) || 0; } catch { return 0; } });
+  // largeur ajustable (minimum / maximum) : poignée à gauche du panneau
+  const startResize = (event) => {
+    event.preventDefault();
+    const startX = event.clientX, startWidth = event.currentTarget.parentElement.offsetWidth;
+    const move = (e) => setAssistantWidth(Math.max(380, Math.min(760, Math.round(startWidth + (startX - e.clientX)))));
+    const stop = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", stop); setAssistantWidth((width) => { try { localStorage.setItem("calepin.assistant.width", String(width)); } catch { /* préférence facultative */ } return width; }); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", stop);
+  };
   const insertMenuRef = useRef(null);
   const [saveClause, setSaveClause] = useState(null), [canPublishClause, setCanPublishClause] = useState(false), [clauseNotice, setClauseNotice] = useState("");
   const openSaveClause = () => {
@@ -279,6 +305,7 @@ export function AssistantPage({
   const [pendingMarks, setPendingMarks] = useState(null);
   const [changeInfo, setChangeInfo] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
+  const [feedback, setFeedback] = useState({});   // retours 👍 / 👎 déjà donnés, par réponse
   const [projectFiles, setProjectFiles] = useState([]);
   const refreshDocuments = () => {
     // documents du projet (tous lots) : réutilisables par l'écran « Préremplir à partir de vos documents »
@@ -294,6 +321,7 @@ export function AssistantPage({
     listChapterMessages(projectId, chapter.id)
       .then(setChatMessages)
       .catch(() => setChatMessages([]));
+    getAssistantFeedback(projectId, chapter.id).then((value) => setFeedback(value.items || {})).catch(() => setFeedback({}));
   }, [projectId, chapter.id]);
   useEffect(() => {
     if (reviewing && !manifest)
@@ -311,6 +339,19 @@ export function AssistantPage({
     return () => cancelAnimationFrame(frame);
   }, [pendingMarks]);
   useEffect(() => clearMarks, []);
+  // texte sélectionné dans le chapitre : seule cible d'une modification demandée à l'assistant (jamais d'élargissement automatique)
+  useEffect(() => {
+    const onSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !previewRef.current) return;
+      if (!previewRef.current.contains(selection.anchorNode) || !previewRef.current.contains(selection.focusNode)) return;
+      const raw = selection.toString();
+      const text = raw.replace(/\s+/g, " ").trim();
+      if (text.length >= 1 && text.length <= 4000) { setSelectionText(text); setSelectionParagraphs(Math.max(1, raw.split(/\n+/).filter((line) => line.trim()).length)); }
+    };
+    document.addEventListener("selectionchange", onSelection);
+    return () => document.removeEventListener("selectionchange", onSelection);
+  }, []);
   const addActivity = (payload) =>
     setActivity((items) => [
       ...items.filter((item) => item.step !== payload.step),
@@ -324,6 +365,19 @@ export function AssistantPage({
       setChatMessages((items) => [...items, saved]);
     } catch {
       /* l'avis reste affiché même si la conversation n'a pas pu être enregistrée */
+    }
+  };
+  // Le texte complet appartient au document, pas à l'historique du chat. En
+  // mémorisant seulement une confirmation courte, les gros lots importés ne
+  // dépassent pas la limite des messages et les relances gardent leur contexte
+  // grâce au chapitre courant envoyé séparément à l'agent.
+  const rememberAssistantAction = async (text) => {
+    try {
+      const saved = await createChapterMessage(projectId, chapter.id, "assistant", text);
+      setChatMessages((items) => [...items, saved]);
+    } catch {
+      // Une panne d'historique ne doit jamais transformer une génération
+      // réussie en erreur ni faire disparaître le résultat du document.
     }
   };
   const analyzeQuestionnaire = async (
@@ -405,7 +459,9 @@ export function AssistantPage({
     if(loading)return;
     // Le parcours questionnaire exploite les pièces jointes comme propositions
     // sourcées à valider. Sans pièce, il s'ouvre simplement vide.
-    if (files.length) {
+    // projet exemple : le questionnaire est DÉJÀ prérempli depuis le dossier public (provenance par réponse) ; aucune analyse automatique des pièces
+    const prefilled = Object.values(qState?.provenance || {}).some((scope) => Object.values(scope || {}).some((item) => item?.level));
+    if (files.length && !prefilled) {
       await analyzeQuestionnaire("", {
         openDirectly: true,
         // Les informations extraites d'un plan restent des propositions
@@ -451,7 +507,7 @@ export function AssistantPage({
     try {
       if (first) {
         const savedUser = await createChapterMessage(projectId, chapter.id, "user", userMessage);
-        setChatMessages((items) => [...items, savedUser]);
+        commitUser(savedUser);
       }
       const result = await streamGenerateChapter(
         projectId,
@@ -486,8 +542,7 @@ export function AssistantPage({
       setGenerated(finalContent);
       setEditedHtml(textToHtml(finalContent));
       setDocumentDirty(true);
-      const savedAssistant = await createChapterMessage(projectId, chapter.id, "assistant", finalContent);
-      setChatMessages((items) => [...items, savedAssistant]);
+      await rememberAssistantAction("La proposition a été rédigée et placée dans le chapitre.");
       addActivity({ step: "ready", message: "Proposition prête dans le chapitre." });
       const note = reportMessage(reportData);
       if (note) {
@@ -554,11 +609,267 @@ export function AssistantPage({
     runDirect(current.userMessage, current.instruction, patch(current.ask, current.question), false);
   };
   const analyze = generateDirectly;
-  const retouch = async () => {
-    if (!retouchInstruction.trim() || loading || hasPresetPlaceholder(retouchInstruction)) return;
+  // Une modification n'est jamais appliquée directement : elle est d'abord proposée (avant / après), le chapitre reste inchangé jusqu'à « Appliquer ».
+  const applyContent = (finalContent, html) => {
+    setGenerated(finalContent);
+    setEditedHtml(html ?? textToHtml(finalContent));
+    setDocumentDirty(true);
+  };
+  const applyProposal = async () => {
+    if (!proposal) return;
+    const squash = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    if (squash(previewRef.current?.innerText || generated) !== squash(proposal.before)) {
+      // le texte a été modifié à la main depuis la génération : on n'écrase rien, on propose de régénérer à partir du texte actuel
+      setProposal({ ...proposal, stale: true });
+      return;
+    }
+    const { after, before, beforeHtml, id } = proposal;
+    applyContent(after);
+    setPendingMarks(changedLines(before, after));
+    setApplied({ id, before, beforeHtml, after });
+    setProposal(null);
+    setSelectionText("");
+    await rememberAssistantAction(`La modification demandée a été appliquée au chapitre (réf. ${id}).`);
+    addActivity({ step: "ready", message: "Modification appliquée dans le document." });
+  };
+  const SELECTION_ACTIONS = {
+    reformuler: "Reformule la sélection en gardant son sens et toutes ses informations.",
+    preciser: "Précise la sélection en la rendant plus explicite, sans ajouter d’information technique.",
+    contractualiser: "Contractualise la sélection sans changer aucune performance ni aucune valeur.",
+  };
+  // ce que l'utilisateur voit dans le fil : une phrase naturelle, jamais le vocabulaire interne de sélection
+  const SHOWN_ACTIONS = { reformuler: "Reformule ce passage.", preciser: "Précise ce passage.", contractualiser: "Rends ce passage plus contractuel." };
+  const presetAction = (preset) => {
+    setQuestionMode(false);
+    if (selectionText && SELECTION_ACTIONS[preset.id]) retouch(SELECTION_ACTIONS[preset.id], SHOWN_ACTIONS[preset.id]);
+    else fillPreset(preset);
+  };
+  const askTechnicalQuestion = () => {
+    setQuestionMode(true);
+    setRetouchInstruction("");
+    requestAnimationFrame(() => document.querySelector(".retouch-composer textarea")?.focus());
+  };
+  const cancelProposal = () => { setProposal(null); addActivity({ step: "ready", message: "Proposition annulée : le chapitre n’a pas été modifié." }); };
+  const retryProposal = () => { const text = proposal?.userMessage || ""; setProposal(null); if (text) retouch(text); };
+  const undoApplied = async () => {
+    if (!applied) return;
+    clearMarks();
+    applyContent(applied.before, applied.beforeHtml);
+    if (previewRef.current && applied.beforeHtml) previewRef.current.innerHTML = applied.beforeHtml;
+    await rememberAssistantAction(`La modification (réf. ${applied.id}) a été annulée : le texte précédent est rétabli.`);
+    setApplied(null);
+  };
+  const styleTargetRef = useRef(null);
+  // ── requête figée (AI-CHAT-UX-03) : dès l'envoi, la demande devient un message du fil (non éditable) et le champ est vidé ──
+  const pendingUserRef = useRef(null);
+  const [workLabel, setWorkLabel] = useState("");
+  const commitUser = (saved) => setChatMessages((items) => {
+    const id = pendingUserRef.current;
+    pendingUserRef.current = null;
+    return id && items.some((item) => item.id === id) ? items.map((item) => (item.id === id ? saved : item)) : [...items, saved];
+  });
+  const dropPendingUser = () => {
+    const id = pendingUserRef.current;
+    pendingUserRef.current = null;
+    if (id) setChatMessages((items) => items.filter((item) => item.id !== id));
+  };
+  // ── actions de l'assistant et leurs cibles (AI-ACTION-NAV-01) : un résultat par réponse, identifiants de bloc stables (data-block-id) ──
+  const actionsKey = `ai-actions:${projectId}:${chapter.id}`;
+  const [actionResults, setActionResults] = useState(() => { try { return JSON.parse(sessionStorage.getItem(actionsKey) || "{}"); } catch { return {}; } });
+  const storeActionResults = (updater) => setActionResults((current) => {
+    const next = typeof updater === "function" ? updater(current) : updater;
+    try { sessionStorage.setItem(actionsKey, JSON.stringify(next)); } catch { /* stockage indisponible : la navigation reste valable pendant la session */ }
+    return next;
+  });
+  const sectionOf = (root, block, minDepth) => {
+    for (let node = block.previousElementSibling; node; node = node.previousElementSibling) {
+      const text = (node.innerText || "").trim();
+      if (text && blockKind(text, minDepth) === "title") return text.slice(0, 80);
+    }
+    return "Début du chapitre";
+  };
+  /** Construit le résultat d'une action : cibles = blocs réellement modifiés, avec un identifiant stable posé dans le document. */
+  const buildActionResult = (messageId, results, root) => {
+    const minDepth = docMinDepth(root);
+    const seen = new Set();
+    const targets = [];
+    results.forEach(({ command, blocks = [] }) => blocks.forEach((block) => {
+      if (!block.getAttribute("data-block-id")) block.setAttribute("data-block-id", `blk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`);
+      const blockId = block.getAttribute("data-block-id");
+      if (seen.has(blockId)) return;
+      seen.add(blockId);
+      targets.push({ target_type: "CCTP_BLOCK", target_id: blockId, section: sectionOf(root, block, minDepth), change_type: Object.keys(command.props || {}).join("+") });
+    }));
+    const total = results.reduce((sum, item) => sum + (item.count || 0), 0);
+    const missed = results.filter((item) => !item.count).length;
+    return {
+      action_id: `AR-${Date.now().toString(36).slice(-6).toUpperCase()}`, message_id: messageId, chapter_id: chapter.id, action_type: "STYLE",
+      status: !total ? "FAILURE" : missed ? "PARTIAL_SUCCESS" : "SUCCESS", affected_count: total, affected_targets: targets, created_at: new Date().toISOString(),
+      undone: false, html_after: root.innerHTML,
+    };
+  };
+  const flashBlock = (node) => {
+    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    node.classList.add("ai-flash");
+    setTimeout(() => node.classList.remove("ai-flash"), 3200);
+  };
+  /** Navigue vers la zone modifiée : défile jusqu'au bloc (par identifiant stable) et le met en évidence ; renvoie false si la zone n'existe plus. */
+  const goToTarget = (blockId) => {
+    const node = previewRef.current?.querySelector(`[data-block-id="${blockId}"]`);
+    if (!node) return false;
+    flashBlock(node);
+    return true;
+  };
+  const undoAction = (messageId) => {
+    const result = actionResults[messageId];
+    if (!result || result.undone) return;
+    const history = editHistory.current;
+    if (history.current !== result.html_after) return; // le document a changé depuis : on n'écrase rien
+    travelHistory("undo");
+    storeActionResults((current) => ({ ...current, [messageId]: { ...current[messageId], undone: true } }));
+  };
+  const retouch = async (override, shown) => {
+    const typedOriginal = typeof override === "string" ? override : retouchInstruction;
+    if (!typedOriginal.trim() || loading || hasPresetPlaceholder(typedOriginal)) return;
+    setProposal(null);
+    setApplied(null);
+    setClausePrompt("");
+    // la demande quitte immédiatement le champ de saisie et devient un message du fil, non éditable ; l'état de traitement s'affiche dessous
+    const pendingId = `pending-${Date.now().toString(36)}`;
+    pendingUserRef.current = pendingId;
+    setChatMessages((items) => [...items, { id: pendingId, role: "user", content: (shown || typedOriginal).trim(), pending: true }]);
+    setRetouchInstruction("");
+    setWorkLabel("Calepin prépare la réponse…");
+    // mémoire de la conversation : la demande est d'abord rendue AUTONOME (« à gauche » → « Aligne les titres à gauche »), quel que soit son objet ; tout le reste du traitement (style, mise en forme, rédaction, questions) part de la version autonome
+    let typed = typedOriginal;
+    const hasPreview = Boolean(previewRef.current?.innerText?.trim());
+    const observe = (route) => observeIntent(projectId, chapter.id, typedOriginal, route); // observation du classifieur appris : à côté des règles, sans effet sur la réponse
+    const rulesAlone = parseStyleCommand(typedOriginal);
+    const evident = hasPreview && isEvidentStyle(typedOriginal, rulesAlone); // voie rapide : phrase autonome et sans ambiguïté, aucun appel au modèle
+    const styleCandidate = hasPreview && (evident || STYLE_LEXICON.test(typedOriginal));
+    const resolveContext = async () => {
+      if (!chatMessages.length) return;
+      setLoading(true);
+      setActivity([{ step: "memory", message: "Compréhension de votre demande dans la conversation…" }]);
+      try {
+        const understood = await contextualizeRequest(projectId, chapter.id, typedOriginal.trim());
+        if (understood?.rewritten && understood.text) { typed = understood.text; shown = shown || typedOriginal.trim(); }
+      } catch { /* mémoire indisponible : la demande est traitée telle quelle */ }
+      setLoading(false);
+    };
+    if (!styleCandidate) await resolveContext();
+    // la consigne de style précédente (dernier message de l'utilisateur) donne la cible d'un suivi court (« en bleu »)
+    let previousTarget = null;
+    for (const item of [...chatMessages].reverse().filter((message) => message.role === "user")) {
+      const own = parseStyleCommand(item.content);
+      if (own) { previousTarget = own.target; break; }
+      if (!parseStyleCommand(item.content, "titles")) break; // le message précédent n'était pas une consigne de style : pas de suivi
+    }
+    previousTarget = previousTarget || styleTargetRef.current;
+    if (previousTarget === "passage") previousTarget = null; // un passage cité n'est pas un contexte de relance (« en bleu » ne retrouverait pas ce passage)
+    const rulesStyle = parseStyleCommand(typedOriginal, previousTarget);
+    if (styleCandidate) {
+      // consigne d'apparence : le modèle local la TRADUIT en commande structurée (avec le contexte de la conversation) ; les règles ne servent que de secours s'il est indisponible.
+      // L'éditeur applique la commande validée à l'affichage : le texte du chapitre n'est jamais envoyé au modèle ni modifié.
+      const userMessage = typed.trim();
+      setLoading(true);
+      setError("");
+      setWorkLabel("Calepin prépare la modification…");
+      setActivity([{ step: "style", message: "Compréhension de votre consigne…" }]);
+      let style = null;
+      let notStyle = false;
+      let degraded = false; // modèle indisponible : repli honnête, jamais silencieux
+      try {
+        if (evident) {
+          style = { commands: [{ target: rulesAlone.target, props: rulesAlone.props, ...(rulesAlone.passage ? { passage: rulesAlone.passage } : {}) }], recognized: true };
+        } else {
+          // UN seul appel : le serveur lit lui-même la conversation (derniers échanges + échanges anciens pertinents) et produit la ou les commandes
+          const answer = await interpretStyle(projectId, chapter.id, userMessage, [], previousTarget);
+          if (answer?.is_style && answer.commands?.length) style = { commands: answer.commands, recognized: true };
+          else notStyle = true;
+        }
+      } catch {
+        // modèle indisponible ou trop lent : les règles ne gèrent qu'un seul ordre simple ; une consigne à plusieurs ordres est refusée plutôt qu'exécutée à moitié
+        degraded = true;
+        style = rulesStyle && !isCompoundStyle(typed) ? { commands: [{ target: rulesStyle.target, props: rulesStyle.props, ...(rulesStyle.passage ? { passage: rulesStyle.passage } : {}) }], recognized: rulesStyle.recognized } : null;
+        notStyle = !rulesStyle && !isCompoundStyle(typed); // rien de reconnu comme apparence : circuit normal
+      }
+      if (!style && notStyle) {
+        setLoading(false); // ce n'est pas une consigne d'apparence : circuit normal (question technique, rédaction…), avec la compréhension de la conversation
+        await resolveContext();
+      } else {
+        observe("style");
+        setRetouchInstruction("");
+        try {
+          const savedUser = await createChapterMessage(projectId, chapter.id, "user", shown || userMessage);
+          commitUser(savedUser);
+          const root = previewRef.current;
+          let reply = degraded ? MODEL_DOWN : STYLE_HELP;
+          let styleResults = null;
+          if (style?.recognized) {
+            setWorkLabel("Calepin applique la modification…");
+            styleResults = applyStyleCommands(root, style.commands);
+            if (styleResults.some((item) => item.count)) recordEdit(root.innerHTML, root.innerText.trim());
+            styleTargetRef.current = style.commands[style.commands.length - 1].target;
+            // le résultat réel d'abord ; le mode d'interprétation est un détail technique (journal), jamais une phrase du chat
+            if (degraded) console.debug("[assistant] interprétation simplifiée : service d'interprétation indisponible, règles locales appliquées");
+            reply = describeStyles(styleResults);
+          }
+          const savedReply = await createChapterMessage(projectId, chapter.id, "assistant", reply);
+          setChatMessages((items) => [...items, savedReply]);
+          if (styleResults) storeActionResults((current) => ({ ...current, [savedReply.id]: { ...buildActionResult(savedReply.id, styleResults, root), html_after: root.innerHTML } }));
+        } catch (reason) {
+          setError(reason.message);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+    }
+    if (FORMAT_REQUEST.test(typed) && previewRef.current?.innerText?.trim()) {
+      // demande de mise en forme (« formatage de meilleure qualité ») : règles de mise en forme automatique appliquées au texte affiché, quel que soit l'état interne du chapitre ; le fond ne change jamais
+      observe("format");
+      const userMessage = typed.trim();
+      setRetouchInstruction("");
+      setError("");
+      setLoading(true);
+      try {
+        const savedUser = await createChapterMessage(projectId, chapter.id, "user", shown || userMessage);
+        commitUser(savedUser);
+        const outcome = await formatDocument(true);
+        if (outcome) {
+          const savedFormat = await createChapterMessage(projectId, chapter.id, "assistant", `${outcome}\n\nCette mise en forme corrige espaces, unités, ponctuation, puces, titres et doublons sans toucher au contenu. Pour reformuler le texte lui-même, dites par exemple : « Reformule la rubrique 1.1 de façon plus formelle ».`);
+          setChatMessages((items) => [...items, savedFormat]);
+        }
+      } catch (reason) {
+        setError(reason.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (isUnsupportedLayout(typed) && previewRef.current?.innerText?.trim()) {
+      // mise en page que l'éditeur ne sait pas faire (interligne, marges, en-tête…) : réponse honnête, jamais de recherche dans le corpus ni de réécriture du texte
+      observe("layout_unsupported");
+      setRetouchInstruction("");
+      setError("");
+      setLoading(true);
+      try {
+        const savedUser = await createChapterMessage(projectId, chapter.id, "user", shown || typed.trim());
+        commitUser(savedUser);
+        const savedReply = await createChapterMessage(projectId, chapter.id, "assistant", UNSUPPORTED_LAYOUT);
+        setChatMessages((items) => [...items, savedReply]);
+      } catch (reason) {
+        setError(reason.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    observe("other"); // ni style, ni mise en forme, ni mise en page non gérée : circuit de rédaction / questions
     if (!generated.trim()) {
       // chapitre encore vide : il n'y a rien à retoucher, la demande est une rédaction (questions manquantes, sources, citations)
-      const userMessage = retouchInstruction.trim();
+      const userMessage = typed.trim();
       lastSubmittedInstruction.current = userMessage;
       setRetouchInstruction("");
       setGap(null);
@@ -567,8 +878,13 @@ export function AssistantPage({
       return;
     }
     const source = previewRef.current?.innerText?.trim() || generated;
-    const userMessage = retouchInstruction.trim();
+    const sourceHtml = previewRef.current?.innerHTML || editedHtml;
+    const userMessage = typed.trim();
+    lastSubmittedInstruction.current = userMessage;
+    const selection = selectionText && source.replace(/\s+/g, " ").includes(selectionText.replace(/\s+/g, " ").trim()) ? selectionText : "";
     setRetouchInstruction("");
+    setNextPrompt("");
+    setCitations([]);
     const scopedInstruction = `Modifie uniquement le chapitre existant selon la demande ci-dessous. Conserve strictement tout ce qui n'est pas concerné, ainsi que la structure et les informations déjà présentes. Ne repars pas du questionnaire, n'invente aucune donnée et ne mentionne jamais de référence interne Q-*. Retourne le chapitre complet modifié, sans commentaire.\n\nMODIFICATION DEMANDÉE :\n${userMessage}`;
     setLoading(true);
     setError("");
@@ -579,7 +895,7 @@ export function AssistantPage({
         message: "Lecture de la conversation et du chapitre actuel…",
       },
     ]);
-    // Le lot déjà écrit reste affiché tel quel pendant le travail de l'IA (rien ne disparaît) ; les passages modifiés sont mis en évidence à l'arrivée.
+    // Le lot déjà écrit reste affiché tel quel pendant le travail de l'IA (rien ne disparaît).
     clearMarks();
     setChangeInfo(null);
     setModifying(true);
@@ -588,9 +904,9 @@ export function AssistantPage({
         projectId,
         chapter.id,
         "user",
-        userMessage,
+        shown || userMessage,
       );
-      setChatMessages((items) => [...items, savedUser]);
+      commitUser(savedUser);
       const result = await streamGenerateChapter(
         projectId,
         chapter.id,
@@ -599,32 +915,49 @@ export function AssistantPage({
         (event, payload) => {
           if (event === "progress") addActivity(payload);
           if (event === "notice") setNotice((payload.messages || []).join(" "));
+          if (event === "sources") setCitations(payload.corpus || []);
         },
+        { ...(selection ? { selection } : {}) },
       );
+      if (result?.advice) {
+        // Question (technique, documentaire ou d'aide) : la réponse s'affiche dans la conversation, le chapitre reste exactement tel qu'il est
+        const savedAdvice = await createChapterMessage(projectId, chapter.id, "assistant", result.advice);
+        setChatMessages((items) => [...items, savedAdvice]);
+        const isQuestion = result.kind === "TECHNICAL_QA" || result.kind === "DOCUMENT_QA";
+        addActivity({ step: "ready", message: isQuestion ? "Réponse dans la conversation : le chapitre n’a pas été modifié." : "Réponse dans la conversation : le chapitre n’a pas été modifié." });
+        // Une réponse informative ne devient jamais automatiquement une
+        // exigence du projet. Le résolveur déterministe décidera si un CTA a
+        // réellement du sens pour la demande et la sélection courantes.
+        setClausePrompt("");
+        setNextPrompt(result.nextPrompt || "");
+        return;
+      }
       const finalContent = renumberChapterText(
         cleanInternalReferences(result?.content || ""),
         chapterNumber,
       );
       if (!finalContent) throw new Error("L’IA n’a retourné aucun contenu.");
-      setGenerated(finalContent);
-      setEditedHtml(textToHtml(finalContent));
-      setDocumentDirty(true);
-      setPendingMarks(changedLines(source, finalContent));
-      const savedAssistant = await createChapterMessage(
-        projectId,
-        chapter.id,
-        "assistant",
-        finalContent,
-      );
-      setChatMessages((items) => [...items, savedAssistant]);
-      addActivity({
-        step: "ready",
-        message: "Modification prête dans le document.",
-      });
+      const norm = (value) => String(value || "").replace(/\s+/g, " ").trim();
+      if (norm(finalContent) === norm(source)) {
+        addActivity({ step: "ready", message: "Aucune modification n’était nécessaire : le chapitre est inchangé." });
+        setNextPrompt(result?.nextPrompt || "");
+        return;
+      }
+      // proposition : avant / après, le chapitre n'est pas touché tant que l'utilisateur n'a pas cliqué sur « Appliquer »
+      // la réponse est un message Assistant ordinaire (conservé dans le fil) ; Appliquer / Réessayer / Voir les modifications y sont attachés
+      const added = diffRows(source, finalContent).filter((row) => row.type === "add").map((row) => row.text);
+      const replyText = added.length ? added.join("\n") : "J’ai retiré ou réorganisé ce passage.";
+      const savedReply = await createChapterMessage(projectId, chapter.id, "assistant", replyText);
+      setChatMessages((items) => [...items, savedReply]);
+      setChangesOpen(false);
+      setProposal({ id: `AE-${Date.now().toString(36).slice(-5).toUpperCase()}`, before: source, beforeHtml: sourceHtml, after: finalContent, userMessage, selection, messageId: savedReply.id });
+      addActivity({ step: "ready", message: "Réponse prête dans la conversation." });
+      setNextPrompt(result?.nextPrompt || "");
     } catch (reason) {
       // échec : le lot n'a jamais quitté l'écran, rien à restaurer
       if (reason.offTopic) await declineOffTopic(reason.message);
       else {
+        dropPendingUser();
         setRetouchInstruction((current) => current.trim() ? current : userMessage);
         setError(reason.message);
       }
@@ -669,10 +1002,12 @@ export function AssistantPage({
         // règles métier personnalisées de l'utilisateur : elles remplacent la phrase produite pour la question concernée
         ...(Object.keys(ruleOverrides).length ? [`###RULES ${JSON.stringify(ruleOverrides)}`] : []),
         ...answeredLines(qState.project),
+        ...generatedPrescriptions(qState.project, questionnaireManifest.questions),
         ...qState.works.map((work) =>
           [
             `###OUVRAGE id=${work.id} family=${work.family} label=${work.answers["Q-W01"] || work.label}`,
             ...answeredLines(work.answers),
+            ...generatedPrescriptions(work.answers, questionnaireManifest.questions),
           ].join("\n"),
         ),
       ].join("\n");
@@ -770,7 +1105,7 @@ export function AssistantPage({
     setNotice("");
     try {
       for (const file of selectedFiles)
-        await uploadAttachment(projectId, chapter.id, file);
+        await uploadAttachment(projectId, chapter.id, file, "", "", "ATTACHMENT_TEMPORARY"); // joint de la conversation : lisible par l'assistant, absent des documents du projet tant qu'on ne l'y ajoute pas
       await refreshDocuments();
     } catch (reason) {
       setError(reason.message);
@@ -923,10 +1258,38 @@ export function AssistantPage({
       }
     }
   };
+  // Mise en forme automatique (règles, aucun modèle) : espaces, unités, ponctuation, puces, titres, doublons. Le fond ne change jamais ; les blocs à contenu riche (clause insérée, gras…) restent intacts.
+  const formatDocument = async (fromChat = false) => {
+    const root = previewRef.current;
+    setMoreOpen(false);
+    if (!root || (loading && !fromChat)) return;
+    const blocks = [...root.children];
+    const lines = blocks.map((block) => (block.innerText || "").replace(/\n$/, ""));
+    const plain = blocks.map((block, index) => ![...block.children].some((child) => child.tagName !== "BR") && !lines[index].includes("\n"));
+    try {
+      const before = root.innerText.trim();
+      const result = await formatChapter(projectId, chapter.id, lines, plain);
+      result.entries.forEach((entry, index) => {
+        const block = blocks[index];
+        if (!block || !plain[index]) return;
+        if (entry.text === null) { block.remove(); return; }
+        if (entry.text !== lines[index]) block.textContent = entry.text;
+      });
+      const skipped = plain.filter((value) => !value).length;
+      const total = Object.values(result.counts || {}).reduce((sum, value) => sum + value, 0);
+      recordEdit(root.innerHTML, root.innerText.trim());
+      setPendingMarks(changedLines(before, root.innerText.trim()));
+      const message = total ? `Mise en forme : ${total} correction${total > 1 ? "s" : ""}, aucun mot ni chiffre modifié.${skipped ? ` ${skipped} bloc${skipped > 1 ? "s" : ""} à mise en forme riche laissé${skipped > 1 ? "s" : ""} intact${skipped > 1 ? "s" : ""}.` : ""} Annulable (Ctrl+Z).` : "Rien à corriger : le chapitre est déjà bien mis en forme.";
+      setNotice(message);
+      return message;
+    } catch (reason) {
+      setError(reason.message);
+    }
+  };
   // quitter l'éditeur pour la bibliothèque : on enregistre d'abord ce qui est en cours (rien ne se perd)
-  const openLibraryFlushed = async () => {
+  const openLibraryFlushed = async (section) => {
     if (previewRef.current) await persistSilently(previewRef.current.innerText?.trim() || generated, previewRef.current.innerHTML || editedHtml);
-    onOpenLibrary?.();
+    onOpenLibrary?.(section);
   };
   useEffect(() => {
     if (!documentDirty || loading || comparisonOpen) return;
@@ -1190,11 +1553,37 @@ export function AssistantPage({
   });
   activeTraceRef.current = activeTrace;
   const emptyStart = !generated && !loading && !retouchMode && !manualWriting;
-  // La conversation reste calée sur le dernier message
+  // Le fil reste calé sur le dernier message SEULEMENT si l'utilisateur est en bas : s'il relit un ancien message, on ne lui arrache pas le scroll (« ↓ Nouvelle réponse »)
   useEffect(() => {
-    const node = chatHistoryRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [chatMessages.length, retouchMode]);
+    const node = threadRef.current;
+    if (!node) return;
+    if (stickRef.current) { node.scrollTop = node.scrollHeight; setNewReply(false); }
+    else if (chatMessages.length) setNewReply(true);
+  }, [chatMessages.length, retouchMode, loading, proposal]);
+  const onThreadScroll = () => {
+    const node = threadRef.current;
+    if (!node || !node.clientHeight) return; // panneau réduit (display:none) : on garde la dernière position lue
+    scrollSaved.current = node.scrollTop;
+    stickRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+    if (stickRef.current) setNewReply(false);
+  };
+  // le panneau replié puis rouvert retrouve exactement la conversation et sa position
+  useEffect(() => { if (!assistantHidden && threadRef.current) threadRef.current.scrollTop = scrollSaved.current; }, [assistantHidden]);
+  useEffect(() => { setChangesOpen(false); }, [proposal?.id]);
+  // hauteur du panneau = ce qui reste d'écran sous lui : le composer ne dépasse jamais de la fenêtre, quelle que soit la hauteur de l'en-tête de page
+  useEffect(() => {
+    const fit = () => { const node = workbenchRef.current; if (!node) return; node.style.setProperty("--assistant-top", `${Math.round(node.getBoundingClientRect().top + window.scrollY + 12)}px`); };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [retouchMode, assistantHidden]);
+  // zone de saisie : 2 lignes au départ, elle grandit jusqu'à ~6 lignes puis défile
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area) return;
+    area.style.height = "auto";
+    area.style.height = `${Math.min(area.scrollHeight, 150)}px`;
+  }, [retouchInstruction, retouchMode]);
   useEffect(() => {
     if (manualWriting && !generated) previewRef.current?.focus();
   }, [manualWriting]);
@@ -1321,17 +1710,18 @@ export function AssistantPage({
   }
   return (
     <main className="assistant-page">
-      <section className={`assistant-layout assistant-workspace layout-work ${emptyStart && !freeTextChosen ? "start-choosing" : ""} ${assistantHidden && !emptyStart ? "assistant-collapsed" : ""}`}>
-        {assistantHidden && !emptyStart && <button type="button" className="assistant-reopen" data-assistant-open onClick={() => changeAssistantHidden(false)}><Bot size={15} /> Assistant de rédaction</button>}
-        <section className={`ai-workbench ${retouchMode && !emptyStart ? "is-retouch" : ""}`}>
+      <section style={assistantWidth && !emptyStart ? { "--assistant-width": `${assistantWidth}px` } : undefined} className={`assistant-layout assistant-workspace layout-work ${emptyStart && !freeTextChosen ? "start-choosing" : ""} ${assistantHidden && !emptyStart ? "assistant-collapsed" : ""}`}>
+        {assistantHidden && !emptyStart && <button type="button" className="assistant-reopen" data-assistant-open onClick={() => changeAssistantHidden(false)}><Bot size={15} /> Assistant</button>}
+        <section ref={workbenchRef} className={`ai-workbench ${retouchMode && !emptyStart ? "is-retouch" : ""}`}>
+          {retouchMode && !emptyStart && <div className="ai-resizer" role="separator" aria-orientation="vertical" aria-label="Ajuster la largeur de l’assistant" data-ai-resizer onPointerDown={startResize} />}
           <div className="ai-workbench-head">
             <span>
               <Bot size={18} />
             </span>
             <div>
-              <small>ASSISTANT DE RÉDACTION</small>
+              {!retouchMode && <small>ASSISTANT DE RÉDACTION</small>}
               <div className="assistant-identity">
-                <b>IA spécialisée · {chapter.title}</b>
+                <b>IA spécialisée</b>{retouchMode && <span className="assistant-chapter" data-assistant-chapter>{chapter.title}</span>}{!retouchMode && <b> · {chapter.title}</b>}
                 {/* « Prêt » et « Proposition prête » n'apprennent rien à l'utilisateur : seuls les états de travail ou d'attente sont affichés */}
                 {agentStatus.tone !== "idle" && agentStatus.tone !== "ready" && (
                   <span className={`agent-status ${agentStatus.tone}`}>
@@ -1343,24 +1733,24 @@ export function AssistantPage({
             </div>
             {!emptyStart && <button type="button" className="assistant-collapse" data-assistant-collapse title="Réduire l’assistant : le document occupe toute la largeur" aria-label="Réduire l’assistant" onClick={() => changeAssistantHidden(true)}><PanelRightClose size={17} /></button>}
           </div>
-          <p className="ai-workbench-intro">
-            {retouchMode ? (
-              <>
-                Modifiez ou complétez le <strong>chapitre affiché à gauche</strong>. Le reste du document reste inchangé.
-              </>
-            ) : (
-              <>
-                Décrivez votre besoin, ajoutez vos pièces techniques et laissez
-                l’IA préparer une proposition spécialisée en{" "}
-                <strong>{chapter.specialty}</strong>.
-              </>
-            )}
-          </p>
+          {retouchMode ? <small className="assistant-subtitle" data-assistant-subtitle>Technique &amp; rédaction</small> : (
+            <p className="ai-workbench-intro">
+              Décrivez votre besoin, ajoutez vos pièces techniques et laissez
+              l’IA préparer une proposition spécialisée en{" "}
+              <strong>{chapter.specialty}</strong>.
+            </p>
+          )}
           {saveClause && (saveClause.text ? <ClauseEditor mode="create" initial={saveClause} canPublish={canPublishClause} onClose={() => setSaveClause(null)} onSaved={(mode, draft) => { setSaveClause(null); setClauseNotice(canPublishClause ? "Clause ajoutée à la bibliothèque agence." : "Clause proposée : un administrateur de la bibliothèque la validera."); setTimeout(() => setClauseNotice(""), 6000); }} />
             : <div className="confirm-backdrop" role="presentation" onMouseDown={() => setSaveClause(null)}><section className="estimate-documents" role="dialog" aria-modal="true" data-save-clause-empty><p>Sélectionnez d’abord un passage du chapitre, puis choisissez « Enregistrer la sélection comme clause agence ».</p><p className="price-modal-actions"><button type="button" className="primary" onClick={() => setSaveClause(null)}>Compris</button></p></section></div>)}
           {clauseNotice && <div className="price-message clause-notice" role="status" data-clause-notice>{clauseNotice}</div>}
-          {clauseDrawer && <ClauseDrawer lotId={chapter.id} sectionType={clauseSection} answers={answersIndex(qState)} insertedIds={[...(previewRef.current?.querySelectorAll("[data-agency-clause]") || [])].map((node) => node.getAttribute("data-agency-clause"))} onClose={() => setClauseDrawer(false)} onOpenLibrary={() => { setClauseDrawer(false); openLibraryFlushed(); }} onInsert={(clause) => { insertClauseAtCursor(previewRef.current, lastRange.current, clause, userEmail); setClauseDrawer(false); }} />}
-          {clauseNode && <ClauseProvenance node={clauseNode} root={previewRef.current} onOpenLibrary={() => openLibraryFlushed()} onClose={() => setClauseNode(null)} />}
+          {clauseDrawer && <ClauseDrawer lotId={chapter.id} sectionType={clauseSection} answers={answersIndex(qState)} insertedIds={[...(previewRef.current?.querySelectorAll("[data-agency-clause]") || [])].map((node) => node.getAttribute("data-agency-clause"))} onClose={() => setClauseDrawer(false)} onOpenLibrary={() => { setClauseDrawer(false); openLibraryFlushed("clauses"); }} onInsert={(clause) => { insertClauseAtCursor(previewRef.current, lastRange.current, clause, userEmail); setClauseDrawer(false); }} />}
+          {specifyNode && <ToSpecifyPopover node={specifyNode} onClose={() => setSpecifyNode(null)}
+            onReplace={(node, text) => { node.replaceWith(document.createTextNode(text)); setSpecifyNode(null); recordEdit(previewRef.current.innerHTML, previewRef.current.innerText.trim()); }}
+            onOpenQuestion={(questionId) => { setFocusQuestion({ questionId, at: Date.now() }); openQuestionnaire(); }}
+            onAsk={(text) => { setRetouchInstruction(text); requestAnimationFrame(() => document.querySelector(".retouch-composer textarea")?.focus()); }}
+            onAttach={() => picker.current?.click()} />}
+          {inlinePassage !== null && <InlinePersonalizationDrawer target={{ entityType: "cctp_passage", entityId: inlinePassage.length < 25 ? "Placez le curseur dans un paragraphe du CCTP avant de cliquer sur le crayon." : inlinePassage.slice(0, 3000), projectId }} onClose={() => setInlinePassage(null)} />}
+          {clauseNode && <ClauseProvenance node={clauseNode} root={previewRef.current} onOpenLibrary={() => openLibraryFlushed("clauses")} onClose={() => setClauseNode(null)} />}
           <input
             ref={picker}
             type="file"
@@ -1369,125 +1759,101 @@ export function AssistantPage({
             accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.tif,.tiff,.txt"
             onChange={addFiles}
           />
-          <div className="ai-conversation">
-            {questionnaireChoice && (
-              <div className="questionnaire-choice-inline">
-                <div className="choice-inline-head">
-                  <span>
-                    <Sparkles size={17} />
-                  </span>
-                  <div>
-                    <small>ANALYSE TERMINÉE</small>
-                    <b>Souhaitez-vous préciser certains points ?</b>
-                  </div>
-                </div>
-                <p>
-                  L’IA a retrouvé{" "}
-                  <strong>
-                    {candidates.length} information
-                    {candidates.length > 1 ? "s" : ""}
-                  </strong>
-                  . Vous pouvez générer maintenant ou compléter quelques
-                  questions facultatives.
-                </p>
-                <div>
-                  <button
-                    className="choice-skip"
-                    onClick={() => {
-                      setQuestionnaireChoice(false);
-                      generateFromQuestionnaire();
-                    }}
-                  >
-                    Générer maintenant
-                  </button>
-                  <button
-                    className="choice-open"
-                    onClick={() => {
-                      setQuestionnaireChoice(false);
-                      setReviewing(true);
-                    }}
-                  >
-                    Compléter le questionnaire <Send size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
-            {loading && (
-              <div className="ai-activity">
-                <div className="typing">
-                  <i />
-                  <i />
-                  <i /> L’agent travaille en local
-                </div>
-                {/* Les étapes déjà faites sont résumées : seule la dernière reste détaillée, pour que la demande et la zone de saisie restent visibles */}
-                {activity.length > 3 && (
-                  <div className="activity-step activity-done" data-activity-done>
-                    <span>✓</span>
-                    {activity.length - 2} étapes terminées
+          {retouchMode ? (
+            <div className="ai-thread-wrap">
+              <div className="ai-thread" ref={threadRef} onScroll={onThreadScroll} data-ai-thread>
+                {chatMessages.length === 0 && !loading && !proposal && !applied && !gap && !report && (
+                  <EmptyState topic={chapter.title} onExample={(text) => { setRetouchInstruction(text); requestAnimationFrame(() => areaRef.current?.focus()); }} />
+                )}
+                {gap && !loading && (
+                  <MissingDataPrompt
+                    gap={gap}
+                    onAnswer={(value) => answerGap((ask, question) => ({ ...ask, answers: { ...ask.answers, [question.id]: value } }))}
+                    onSkip={() => answerGap((ask, question) => ({ ...ask, skipped: [...ask.skipped, question.id] }))}
+                    onStop={() => answerGap((ask) => ({ ...ask, stopAsking: true }))}
+                    onCancel={() => { setMessage((current) => current.trim() ? current : gap.userMessage); setGap(null); }}
+                  />
+                )}
+                {(report || citations.length > 0) && !gap && <GenerationReport report={report} citations={citations} pending={loading} onClose={() => { setReport(null); setCitations([]); }} />}
+                {chatMessages.length > 0 && (
+                  <div className="chapter-chat-history" ref={chatHistoryRef}>
+                    {chatMessages.slice(-30).map((item) => (
+                      <ChatMessage key={item.id} item={item} body={item.role === "assistant" ? answerBody(item.content) : item.content} technical={item.role === "assistant" && isAnswerMessage(item.content)}>
+                        {proposal && proposal.messageId === item.id && (
+                          <div className="ai-message-actions" data-ai-proposal data-message-actions>
+                            {proposal.stale && <p className="ai-proposal-stale" data-proposal-stale role="alert">Le passage a été modifié depuis cette réponse. Rien n’a été écrasé : régénérez la réponse à partir du texte actuel.</p>}
+                            <button type="button" className="link-button strong" data-proposal-apply disabled={proposal.stale} onClick={applyProposal}>Appliquer</button>
+                            <span aria-hidden="true">·</span>
+                            <button type="button" className="link-button" data-proposal-retry disabled={loading} onClick={retryProposal}>{proposal.stale ? "Regénérer" : "Réessayer"}</button>
+                            <span aria-hidden="true">·</span>
+                            <button type="button" className="link-button" data-proposal-changes aria-expanded={changesOpen} onClick={() => setChangesOpen(!changesOpen)}>{changesOpen ? "Masquer les modifications" : "Voir les modifications"}</button>
+                            {changesOpen && (
+                              <div className="ai-diff" data-ai-diff>
+                                {diffRows(proposal.before, proposal.after).map((row, index) => (
+                                  <p key={index} className={`ai-diff-${row.type}`} data-diff-row={row.type}>{row.type === "add" ? "+ " : row.type === "del" ? "− " : "  "}{row.text}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {item.role === "assistant" && actionResults[item.id] && (
+                          <ActionNav result={actionResults[item.id]} onGo={goToTarget} onUndo={() => undoAction(item.id)} canUndo={editHistory.current.current === actionResults[item.id].html_after} />
+                        )}
+                        {item.role === "assistant" && isAnswerMessage(item.content) && (
+                          <AnswerFeedback cctpId={projectId} chapterId={chapter.id} message={item} saved={feedback[item.id]} onSaved={(messageId, value) => setFeedback((current) => ({ ...current, [messageId]: value }))} />
+                        )}
+                      </ChatMessage>
+                    ))}
                   </div>
                 )}
-                {activity.slice(-2).map((item, offset, visible) => {
-                  const index = activity.length - visible.length + offset;
-                  return (
-                    <div className="activity-step" key={item.step}>
-                      <span>{index < activity.length - 1 ? "✓" : <i />}</span>
-                      {item.message}
+                {applied && !proposal && (
+                  <div className="ai-applied" data-ai-applied role="status">
+                    <span>✓ Modification appliquée (réf. {applied.id}).</span>
+                    <button type="button" className="link-button" data-applied-undo onClick={undoApplied}>Annuler la modification</button>
+                  </div>
+                )}
+                {notice && !error && (
+                  <div className="ai-system-line" role="status" data-offtopic-notice>{friendly(notice)}{/Aucune modification utile/.test(notice) && <button type="button" className="link-button" data-ai-retry disabled={loading} onClick={() => retouch(lastSubmittedInstruction.current)}>Réessayer</button>}</div>
+                )}
+                {!loading && !proposal && (
+                  <Suggestions
+                    items={chapterSuggestionLabels(lastSubmittedInstruction.current, nextPrompt, { hasSelection: Boolean(selectionText) })}
+                    onPick={(text) => { setRetouchInstruction(text); requestAnimationFrame(() => areaRef.current?.focus()); }}
+                  />
+                )}
+                {loading && <InlineStatus activity={activity} label={workLabel || (modifying ? "Calepin prépare la réponse…" : "Calepin prépare la rédaction…")} />}
+              </div>
+              {newReply && <button type="button" className="ai-new-reply" data-ai-new-reply onClick={() => { stickRef.current = true; setNewReply(false); const node = threadRef.current; if (node) node.scrollTo({ top: node.scrollHeight, behavior: "smooth" }); }}>↓ Nouvelle réponse</button>}
+            </div>
+          ) : (
+            <div className="ai-conversation">
+              {questionnaireChoice && (
+                <div className="questionnaire-choice-inline">
+                  <div className="choice-inline-head">
+                    <span><Sparkles size={17} /></span>
+                    <div>
+                      <small>ANALYSE TERMINÉE</small>
+                      <b>Souhaitez-vous préciser certains points ?</b>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            {gap && !loading && (
-              <MissingDataPrompt
-                gap={gap}
-                onAnswer={(value) => answerGap((ask, question) => ({ ...ask, answers: { ...ask.answers, [question.id]: value } }))}
-                onSkip={() => answerGap((ask, question) => ({ ...ask, skipped: [...ask.skipped, question.id] }))}
-                onStop={() => answerGap((ask) => ({ ...ask, stopAsking: true }))}
-                onCancel={() => {
-                  setMessage((current) => current.trim() ? current : gap.userMessage);
-                  setGap(null);
-                }}
-              />
-            )}
-            {(report || citations.length > 0) && !gap && <GenerationReport report={report} citations={citations} pending={loading} onClose={() => { setReport(null); setCitations([]); }} />}
-          </div>
-          {retouchMode && chatMessages.length > 0 && (
-            <div className="chapter-chat-history" ref={chatHistoryRef}>
-              <div className="chapter-chat-title">
-                <span>CONVERSATION DU CHAPITRE</span>
-                <small>
-                  {chatMessages.length} message
-                  {chatMessages.length > 1 ? "s" : ""} mémorisé
-                  {chatMessages.length > 1 ? "s" : ""}
-                </small>
-              </div>
-              {chatMessages.slice(-30).map((item) => (
-                <div
-                  key={item.id}
-                  className={`chapter-chat-message ${item.role}`}
-                >
-                  <b>{item.role === "user" ? "Vous" : "IA Plâtrerie"}</b>
-                  {(() => {
-                    const full = item.role === "assistant" ? answerBody(item.content) : item.content;
-                    const long = item.role === "assistant" && full.length > 240;
-                    return (
-                      <>
-                        <p data-chat-message-text>{long && !expandedChat[item.id] ? `${full.slice(0, 240)}…` : full}</p>
-                        {long && (
-                          <button
-                            type="button"
-                            className="chapter-chat-more"
-                            data-chat-more
-                            onClick={() => setExpandedChat((current) => ({ ...current, [item.id]: !current[item.id] }))}
-                          >
-                            {expandedChat[item.id] ? "Réduire" : "Voir toute la réponse"}
-                          </button>
-                        )}
-                      </>
-                    );
-                  })()}
+                  </div>
+                  <p>L’IA a retrouvé <strong>{candidates.length} information{candidates.length > 1 ? "s" : ""}</strong>. Vous pouvez générer maintenant ou compléter quelques questions facultatives.</p>
+                  <div>
+                    <button className="choice-skip" onClick={() => { setQuestionnaireChoice(false); generateFromQuestionnaire(); }}>Générer maintenant</button>
+                    <button className="choice-open" onClick={() => { setQuestionnaireChoice(false); setReviewing(true); }}>Compléter le questionnaire <Send size={14} /></button>
+                  </div>
                 </div>
-              ))}
+              )}
+              {loading && <InlineStatus activity={activity} label="Calepin prépare la rédaction…" />}
+              {gap && !loading && (
+                <MissingDataPrompt
+                  gap={gap}
+                  onAnswer={(value) => answerGap((ask, question) => ({ ...ask, answers: { ...ask.answers, [question.id]: value } }))}
+                  onSkip={() => answerGap((ask, question) => ({ ...ask, skipped: [...ask.skipped, question.id] }))}
+                  onStop={() => answerGap((ask) => ({ ...ask, stopAsking: true }))}
+                  onCancel={() => { setMessage((current) => current.trim() ? current : gap.userMessage); setGap(null); }}
+                />
+              )}
+              {(report || citations.length > 0) && !gap && <GenerationReport report={report} citations={citations} pending={loading} onClose={() => { setReport(null); setCitations([]); }} />}
             </div>
           )}
           {files.length > 0 && (
@@ -1498,117 +1864,77 @@ export function AssistantPage({
                   <span>
                     <b>{file.filename}</b>
                     <small>{Math.max(1, Math.round(file.size / 1024))} Ko</small>
+                    {file.scope === "ATTACHMENT_TEMPORARY" && (
+                      <small className="file-scope" data-file-scope="temporary">
+                        Joint de la conversation — pas encore dans les documents du projet{" "}
+                        <button type="button" className="link-button" data-file-promote onClick={async () => { try { await updateAttachment(projectId, file.id, { scope: "PROJECT_DOCUMENT" }); await refreshDocuments(); } catch (reason) { setError(reason.message); } }}>Ajouter aux documents du projet</button>
+                      </small>
+                    )}
                     {file.analysis && file.analysis.status !== "ok" && (
                       <small className={`file-analysis ${file.analysis.status}`} data-file-analysis={file.analysis.status} title={(file.analysis.warnings || []).join(" ")}>
-                        {file.analysis.status === "pending"
-                          ? "Lue au moment de la rédaction"
-                          : file.analysis.status === "failed"
-                            ? "Lecture impossible : à vérifier"
-                            : "Lecture partielle : relisez les valeurs"}
+                        {file.analysis.status === "pending" ? "Lue au moment de la rédaction" : file.analysis.status === "failed" ? "Lecture impossible : à vérifier" : "Lecture partielle : relisez les valeurs"}
                       </small>
                     )}
                   </span>
-                  <button
-                    type="button"
-                    aria-label={`Retirer ${file.filename}`}
-                    onClick={() => removeFile(file)}
-                  >
-                    <X size={14} />
-                  </button>
+                  <button type="button" aria-label={`Retirer ${file.filename}`} onClick={() => removeFile(file)}><X size={14} /></button>
                 </div>
               ))}
             </div>
           )}
           {retouchMode ? (
-            <div
-              className={`composer ai-workbench-composer retouch-composer ${dragging ? "is-dragging" : ""}`}
-              {...attachmentDropProps}
-            >
+            <div className={`composer ai-workbench-composer retouch-composer ${dragging ? "is-dragging" : ""}`} {...attachmentDropProps}>
               {error && <div className="login-error">{error}</div>}
-              {notice && !error && <div className="assistant-notice" role="status" data-offtopic-notice>{notice}</div>}
               <div className="ai-mode-chips">
-                {aiEditPresets.map((preset) => (
-                  <button
-                    type="button"
-                    key={preset.id}
-                    onClick={() => fillPreset(preset)}
-                  >
-                    {preset.label}
-                  </button>
+                {aiEditPresets.filter((preset) => preset.id !== "ajouter").map((preset) => (
+                  <button type="button" key={preset.id} data-assistant-action={preset.id} onClick={() => presetAction(preset)}>{preset.label}</button>
                 ))}
+                <span className="ai-plus">
+                  <button type="button" data-assistant-plus aria-haspopup="menu" aria-expanded={plusMenu} aria-label="Plus d’actions" onClick={() => setPlusMenu(!plusMenu)}>＋</button>
+                  {plusMenu && (
+                    <div className="sel-bar-menu ai-plus-menu" role="menu" data-assistant-plus-menu>
+                      {aiEditPresets.filter((preset) => preset.id === "ajouter").map((preset) => <button type="button" role="menuitem" key={preset.id} data-assistant-action="ajouter" onClick={() => { setPlusMenu(false); presetAction(preset); }}>Ajouter du contenu</button>)}
+                      <button type="button" role="menuitem" data-assistant-attach disabled={uploading} onClick={() => { setPlusMenu(false); picker.current.click(); }}>{uploading ? "Ajout…" : "Joindre un document"}</button>
+                    </div>
+                  )}
+                </span>
               </div>
-              <textarea
-                aria-label="Modification à effectuer"
-                rows={3}
-                value={retouchInstruction}
-                onInput={(event) =>
-                  setRetouchInstruction(event.currentTarget.value)
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && (event.ctrlKey || event.metaKey))
-                    retouch();
-                }}
-                placeholder="Ex. Ajoute une exigence acoustique de 47 dB et conserve tout le reste du chapitre…"
-              />
-              <div className="retouch-actions">
-                <button
-                  type="button"
-                  onClick={() => picker.current.click()}
-                  className="attach-labelled"
-                  disabled={uploading}
-                  title="Joignez un plan, une notice, un tableau de surfaces ou un CCTP d’une opération similaire (PDF, Word, Excel, image ou texte). L’IA s’en sert pour comprendre le projet et rédiger."
-                >
-                  <Paperclip size={16} /> {uploading ? "Ajout…" : "Joindre un document"}
-                </button>
-                <button
-                  type="button"
-                  className="send send-icon"
-                  data-retouch-send
-                  aria-label="Envoyer"
-                  onClick={retouch}
+              <div className="ai-input-row">
+                <textarea
+                  ref={areaRef}
+                  aria-label="Votre question ou demande de modification"
+                  rows={2}
+                  value={retouchInstruction}
+                  onInput={(event) => setRetouchInstruction(event.currentTarget.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) retouch(); }}
+                  placeholder="Posez une question ou demandez une modification…"
+                />
+                <button type="button" className="send send-icon" data-retouch-send aria-label="Envoyer" onClick={retouch}
                   disabled={!retouchInstruction.trim() || loading || hasPresetPlaceholder(retouchInstruction)}
-                  title={hasPresetPlaceholder(retouchInstruction) ? "Remplacez les passages entre crochets avant d’envoyer" : undefined}
-                >
+                  title={hasPresetPlaceholder(retouchInstruction) ? "Remplacez les passages entre crochets avant d’envoyer" : undefined}>
                   {loading ? "…" : <Send size={16} />}
                 </button>
               </div>
             </div>
           ) : (
-            <div
-              className={`composer ai-workbench-composer ${dragging ? "is-dragging" : ""}`}
-              {...attachmentDropProps}
-            >
+            <div className={`composer ai-workbench-composer ${dragging ? "is-dragging" : ""}`} {...attachmentDropProps}>
               {error && <div className="login-error">{error}</div>}
-              {notice && !error && <div className="assistant-notice" role="status" data-offtopic-notice>{notice}</div>}
+              {notice && !error && <div className="assistant-notice" role="status" data-offtopic-notice>{friendly(notice)}</div>}
               <textarea
                 aria-label="Décrivez ce que vous souhaitez intégrer dans ce chapitre"
                 rows={7}
                 value={message}
                 onInput={(e) => setMessage(e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) analyze();
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) analyze(); }}
                 placeholder="Décrivez le projet, les ouvrages attendus et les contraintes…"
               />
               <div>
-                <button
-                  type="button"
-                  onClick={() => picker.current.click()}
-                  className="attach-labelled"
-                  disabled={uploading}
-                  title="Joignez un plan, une notice, un tableau de surfaces ou un CCTP d’une opération similaire (PDF, Word, Excel, image ou texte). L’IA s’en sert pour comprendre le projet et rédiger."
-                >
+                <button type="button" onClick={() => picker.current.click()} className="attach-labelled" disabled={uploading}
+                  title="Joignez un plan, une notice, un tableau de surfaces ou un CCTP d’une opération similaire (PDF, Word, Excel, image ou texte). L’IA s’en sert pour comprendre le projet et rédiger.">
                   <Paperclip size={16} /> {uploading ? "Ajout…" : "Joindre un document"}
                 </button>
                 <small>Ctrl + Entrée pour rédiger</small>
-                <button
-                  type="button"
-                  className="send"
-                  onClick={analyze}
-                  disabled={!message.trim() || loading || questionnaireChoice}
-                >
-                  {loading ? "Rédaction…" : "Rédiger avec l’IA"}{" "}
-                  {!loading && <Send size={15} />}
+                <button type="button" className="send" onClick={analyze} disabled={!message.trim() || loading || questionnaireChoice}>
+                  {loading ? "Rédaction…" : "Rédiger avec l’IA"} {!loading && <Send size={15} />}
                 </button>
               </div>
             </div>
@@ -1671,6 +1997,14 @@ export function AssistantPage({
                   <button type="button" className="preview-compare-button" data-editor-compare onClick={() => setComparisonOpen(true)} title={generated ? "Récupérer une partie d’un lot similaire, importé ou déjà créé" : "Commencer ce chapitre à partir d’un lot déjà importé ou rédigé"}>
                     <Files size={14} /> Comparer
                   </button>
+                  <span data-cctp-personalize-wrap title="Personnaliser pour mon agence le paragraphe où se trouve le curseur">
+                    <InlinePersonalizationTrigger label="Personnaliser pour mon agence le paragraphe où se trouve le curseur" onOpen={() => {
+                      const live = window.getSelection(); if (live?.rangeCount && previewRef.current?.contains(live.getRangeAt(0).startContainer)) lastRange.current = live.getRangeAt(0).cloneRange();
+                      const node = lastRange.current?.startContainer, root = previewRef.current;
+                      const element = node && root?.contains(node) ? (node.nodeType === 3 ? node.parentElement : node).closest("p, li, h1, h2, h3, h4, h5, div") : null;
+                      const text = (element && element !== root ? element.innerText : "").trim();
+                      setInlinePassage(text || " ");
+                    }} /></span>
                   <div className="row-more" ref={insertMenuRef}>
                     <button type="button" className="secondary" data-editor-insert aria-haspopup="menu" aria-expanded={insertMenu} disabled={loading || !hasPage} title={hasPage ? "Insérer dans le chapitre" : "Rédigez ou générez d’abord le chapitre"} onClick={() => setInsertMenu((value) => !value)}>Insérer ▾</button>
                     {insertMenu && <div className="sel-bar-menu row-more-menu editor-more-menu" role="menu" data-insert-menu>
@@ -1793,6 +2127,7 @@ export function AssistantPage({
                       <SpellCheck2 size={15} />
                       <small>Orthographe {spellcheckEnabled ? "activée" : "désactivée"}</small>
                     </button>
+                    <button type="button" role="menuitem" className="toolbar-writing-help" data-format-document title="Corrige espaces, unités, ponctuation, puces, titres et doublons — sans changer le contenu" onMouseDown={(event) => { event.preventDefault(); formatDocument(); }}><AlignLeft size={15} /><small>Mettre en forme</small></button>
                     <button type="button" role="menuitem" className="toolbar-writing-help" data-save-clause title="Enregistrer le passage sélectionné comme clause de la bibliothèque agence" onMouseDown={(event) => { event.preventDefault(); setMoreOpen(false); openSaveClause(); }}><small>Enregistrer la sélection comme clause agence</small></button>
                     <button
                       type="button"
@@ -1810,7 +2145,6 @@ export function AssistantPage({
               </div>
             </div>
           )}
-          <SimilarPassages cctpId={projectId} chapterId={chapter.id} rootSelector=".editable-chapter-preview" />
           <AnswerTrace
             rootRef={previewRef}
             enabled={hasPage}
@@ -1863,9 +2197,9 @@ export function AssistantPage({
                   // En rédaction manuelle, le contenu vit dans la page elle-même : si ce HTML changeait à
                   // chaque frappe, React réécrirait la page et renverrait le curseur au début
                   // (le texte s'écrirait alors à l'envers).
-                  __html: editedHtml || (manualWriting && !loading ? "" : textToHtml(generated)),
+                  __html: decorateToSpecify(editedHtml || (manualWriting && !loading ? "" : textToHtml(generated))),
                 }}
-                onClick={(event) => { const node = event.target.closest?.("[data-agency-clause]"); if (node && previewRef.current?.contains(node)) setClauseNode(node); }}
+                onClick={(event) => { const node = event.target.closest?.("[data-agency-clause]"); if (node && previewRef.current?.contains(node)) setClauseNode(node); const marker = event.target.closest?.("[data-to-specify]"); if (marker && previewRef.current?.contains(marker)) setSpecifyNode(marker); }}
                 onFocus={rememberSelection}
                 onMouseUp={rememberSelection}
                 onKeyUp={rememberSelection}

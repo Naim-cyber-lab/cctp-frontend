@@ -140,7 +140,7 @@ export function GenerationReport({ report, citations = [], pending = false, onCl
               <li key={item.ref} className={item.cited ? "cited" : ""} data-corpus-source={item.ref}>
                 <b>{item.manufacturer}</b> — {item.title}, p. {item.page}
                 <em> · preuve {item.tier}{item.table ? " · tableau" : ""}{item.expired ? " · EXPIRÉE" : ""}{item.cited ? " · citée" : ""}</em>
-                {item.url && <a href={item.url} target="_blank" rel="noreferrer"> ouvrir la source</a>}
+                {item.url && <a href={`${item.url}${item.page && /\.pdf($|\?)/i.test(item.url) && !item.url.includes("#") ? `#page=${item.page}` : ""}`} target="_blank" rel="noreferrer" data-source-open> ouvrir la source</a>}
               </li>
             ))}
           </ul>

@@ -1,9 +1,10 @@
+import {InlinePersonalizationTrigger} from './InlinePersonalization';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Copy, FileSearch, FileText, Info, Layers3, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { WorksRecap } from './WorksRecap';
 import { SaveWorkTemplateModal } from './SaveWorkTemplateModal';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { downloadWorksRecap, listWorkTemplates } from '../api/client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { isQuestionVisible } from '../utils/questionnaireLogic';
 
 const parseOptions=value=>(value||'').split(';').map(item=>item.trim()).filter(Boolean);
@@ -44,13 +45,13 @@ function QuestionField({question,value,onChange,candidate,family}){
    if(!on&&isNone(option))next=[option]; else if(!on)next=next.filter(item=>!isNone(item));
    commit(next,isNone(option)&&!on?'':extra);
   };
-  return <div className="pl-question pl-multi" data-question-id={question.id} data-multi-question><span className="pl-question-head"><b>{label}</b><small>{question.id}</small></span>
+  return <div className="pl-question pl-multi" data-question-id={question.id} data-multi-question><span className="pl-question-head"><b>{label}</b><small>{question.id}</small><InlinePersonalizationTrigger label="Personnaliser cette question pour mon agence" onOpen={()=>window.dispatchEvent(new CustomEvent('calepin:inline-personalize',{detail:{entityType:'question',entityId:question.id}}))}/></span>
    <div className="pl-chips" role="group" aria-label={label}>{shown.map(option=><button type="button" key={option} className={chosen.includes(option)?'on':''} aria-pressed={chosen.includes(option)} data-choice={option} onClick={()=>toggle(option)}>{option}</button>)}</div>
    {question.id==='Q-P06'&&<div className="pl-extra"><b>Quelles limites de prestations voulez-vous ajouter ?</b><textarea rows={2} data-multi-extra value={extra} onChange={event=>commit(chosen.filter(item=>!isNone(item)),event.target.value)} placeholder="Ajoutez ici une limite particulière au projet…"/></div>}
    {candidate&&<span className="pl-evidence"><Sparkles size={12}/><span><b>Proposition IA · {Math.round(candidate.confidence*100)} %</b><small>{candidate.evidence||candidate.source}</small></span></span>}
   </div>;
  }
- return <label className="pl-question" data-question-id={question.id}><span className="pl-question-head"><b>{label}</b><small>{question.id}</small></span>{options.length&&question.answer_type==='single'?<select value={value||''} onChange={event=>onChange(event.target.value)}><option value="">Sélectionner…</option>{options.map(option=><option key={option}>{option}</option>)}</select>:isLong?<textarea rows={3} value={Array.isArray(value)?value.join(' ; '):value||''} onChange={event=>onChange(event.target.value)} placeholder="À renseigner…"/>:<input value={Array.isArray(value)?value.join(' ; '):value||''} onChange={event=>onChange(event.target.value)} placeholder={options.length?options.join(' · '):'À renseigner…'}/>} {candidate&&<span className="pl-evidence"><Sparkles size={12}/><span><b>Proposition IA · {Math.round(candidate.confidence*100)} %</b><small>{candidate.evidence||candidate.source}</small></span></span>}</label>
+ return <label className="pl-question" data-question-id={question.id}><span className="pl-question-head"><b>{label}</b><small>{question.id}</small><InlinePersonalizationTrigger label="Personnaliser cette question pour mon agence" onOpen={()=>window.dispatchEvent(new CustomEvent('calepin:inline-personalize',{detail:{entityType:'question',entityId:question.id}}))}/></span>{options.length&&question.answer_type==='single'?<select value={value||''} onChange={event=>onChange(event.target.value)}><option value="">Sélectionner…</option>{options.map(option=><option key={option}>{option}</option>)}</select>:isLong?<textarea rows={3} value={Array.isArray(value)?value.join(' ; '):value||''} onChange={event=>onChange(event.target.value)} placeholder="À renseigner…"/>:<input value={Array.isArray(value)?value.join(' ; '):value||''} onChange={event=>onChange(event.target.value)} placeholder={options.length?options.join(' · '):'À renseigner…'}/>} {candidate&&<span className="pl-evidence"><Sparkles size={12}/><span><b>Proposition IA · {Math.round(candidate.confidence*100)} %</b><small>{candidate.evidence||candidate.source}</small></span></span>}</label>
 }
 
 /** Indicateurs de la « revue documentaire » : calculés sur les mêmes questions visibles que le questionnaire (même moteur de règles). */
@@ -83,6 +84,12 @@ function ProvenanceBar({prov,conflict,onConfirm,onUseCandidate,onOpenSource}){
    <span>{candidate.documentId&&<button type="button" className="link-button" onClick={()=>onOpenSource(candidate)}>Voir la source</button>}<button type="button" data-conflict-use onClick={()=>onUseCandidate(candidate)}>Utiliser {String(candidate.value)}</button></span></div>)}
   <small>Vous pouvez aussi saisir une autre valeur dans le champ ci-dessus : le conflit disparaît dès que vous la validez.</small></div>;
  if(!prov)return null;
+ if(prov.level==='PUBLIC_DCE'||prov.level==='DEMO_HYPOTHESIS'){
+  const doc=prov.level==='PUBLIC_DCE';const done=prov.validation==='CONFIRMED_BY_USER';
+  return <div className={`pl-prov pl-prov-${doc?'document':'demo'}`} data-provenance={doc?'document':'demo'} data-provenance-level={prov.level}>
+   <span><b className={`pl-badge ${doc?'doc':'demo'}`}>{done?'Validé par vous':doc?'Document':'Hypothèse de démo'}</b> {doc?where(prov):'à confirmer — valeur choisie pour la démonstration, pas issue du dossier'}</span>
+   <span>{doc&&prov.sourceUrl&&<a className="link-button" data-prov-source href={prov.sourceUrl} target="_blank" rel="noreferrer">Voir la source</a>}{!done&&<button type="button" data-prov-confirm onClick={onConfirm}>Confirmer</button>}</span></div>;
+ }
  const reviewed=prov.validation!=='UNREVIEWED';
  const kind=prov.validation==='EDITED_BY_USER'?'edited':prov.validation==='CONFIRMED_BY_USER'?'confirmed':prov.status==='DOCUMENT_INFERRED'?'inferred':'found';
  return <div className={`pl-prov pl-prov-${kind}`} data-provenance={kind}>
@@ -97,6 +104,13 @@ const DOC_MODES=[{id:'notice',label:'Notice descriptive',hint:'Synthétique, cen
 
 export function PlatrerieQuestionnaire({focus,manifest,state,candidates,onOpenProof,docMode,onChangeDocMode,projectId,onChangeProject,onChangeWork,onCreateWork,onChangeWorkFamily,onDeleteWork,onDuplicateWork,onProgressChange,onBack,onGenerate,generating,onProvenance,onResolveConflict,onAddDocuments}){
  const {isAgency}=useWorkspaces();const [templateWork,setTemplateWork]=useState(null);
+ // La question à laquelle on répond garde sa place à l'écran : répondre peut faire apparaître, disparaître ou replier d'autres blocs (questions conditionnelles, étapes), ce qui décalait la page.
+ const anchor=useRef(null);
+ const remember=event=>{const node=event.target?.closest?.('[data-question-id]');if(node)anchor.current={id:node.getAttribute('data-question-id'),top:node.getBoundingClientRect().top,at:Date.now()}};
+ useLayoutEffect(()=>{
+  const adjust=()=>{const a=anchor.current;if(!a||Date.now()-a.at>900)return;const node=document.querySelector(`[data-question-id="${CSS.escape(a.id)}"]`);if(!node)return;const delta=node.getBoundingClientRect().top-a.top;if(Math.abs(delta)<2)return;let scroller=node.parentElement;while(scroller&&scroller!==document.body&&!(scroller.scrollHeight>scroller.clientHeight+1&&/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)))scroller=scroller.parentElement;(scroller&&scroller!==document.body?scroller:window).scrollBy({top:delta,behavior:'instant'})};
+  adjust();const timers=[80,250,600].map(ms=>setTimeout(adjust,ms));return()=>timers.forEach(clearTimeout);
+ });
  const questionMap=useMemo(()=>Object.fromEntries(manifest.questions.map(question=>[question.id,question])),[manifest]);
  const candidateMap=useMemo(()=>Object.fromEntries(candidates.map(item=>[item.questionId,item])),[candidates]);
  const widgets=useMemo(()=>manifest.widgets.map(widget=>({...widget,scope:widgetScope(widget)})),[manifest]);
@@ -182,9 +196,10 @@ export function PlatrerieQuestionnaire({focus,manifest,state,candidates,onOpenPr
  };
  const blockReason=!state.works.length?'Aucun ouvrage n’a encore été créé.':`L’ouvrage « ${workName(emptyWork||state.works[0])} » est encore vide : renseignez au moins une information.`;
 
- return <section className="pl-questionnaire">
+ return <section className="pl-questionnaire" onChangeCapture={remember} onClickCapture={remember} onInputCapture={remember}>
   <header><button onClick={onBack}><ArrowLeft size={16}/> Modifier ma demande</button><div><span><FileSearch size={18}/></span><div><b>Questionnaire canonique Plâtrerie</b><small>Décrivez vos ouvrages · seules les questions pertinentes sont affichées</small></div></div><div className="pl-doc-modes">{DOC_MODES.map(mode=><button key={mode.id} className={docMode===mode.id?'on':''} onClick={()=>onChangeDocMode(mode.id)}><FileText size={13}/><span><b>{mode.label}</b><small>{mode.hint}</small></span></button>)}</div><strong>{completed}/{total} renseignées</strong></header>
   <div className="pl-progress"><i style={{width:`${total?Math.min(100,completed/total*100):0}%`}}/></div>
+  {(()=>{const entries=Object.values(state.provenance||{}).flatMap(scope=>Object.values(scope||{}));const docs=entries.filter(item=>item.level==='PUBLIC_DCE').length,demo=entries.filter(item=>item.level==='DEMO_HYPOTHESIS'&&item.validation!=='CONFIRMED_BY_USER').length;return docs+demo>0?<><p className="pl-demo-works" data-demo-works><b>Ouvrages proposés</b> : {state.works.map(work=>work.label||work.id).join(' · ')}</p><p className="pl-demo-summary" data-demo-provenance-summary><b>Questionnaire prérempli</b> · {docs} réponse{docs>1?'s':''} trouvée{docs>1?'s':''} dans les documents · {demo} hypothèse{demo>1?'s':''} de démo à confirmer</p></>:null})()}
   {(documentReview||onAddDocuments)&&<section className="pl-review" data-document-review>
    {documentReview&&<><b>Revue des données extraites</b>
     <span data-review-progress>{stats.verified} / {stats.proposals} proposition{stats.proposals>1?'s':''} vérifiée{stats.verified>1?'s':''} · {stats.conflicts} conflit{stats.conflicts>1?'s':''} restant{stats.conflicts>1?'s':''} · {stats.missing} information{stats.missing>1?'s':''} manquante{stats.missing>1?'s':''}</span>

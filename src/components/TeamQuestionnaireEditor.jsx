@@ -1,7 +1,7 @@
-import { Check, ChevronDown, History, Pencil, Search, ShieldCheck, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, History, Pencil, Plus, Search, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RuleEditor, RuleModal } from "./RuleEditor";
-import { deleteQuestionChange, getQuestionnaireCatalog, getRuleDefault, listQuestionChanges, proposeQuestionChange, rejectQuestionChange, validateQuestionChange } from "../api/client";
+import { deleteQuestionChange, getQuestionnaireCatalog, getRuleDefault, listQuestionChanges, proposeQuestionChange, rejectQuestionChange, restoreQuestionChange, validateQuestionChange } from "../api/client";
 
 const optionsOf = (value) => String(value || "").split(";").map((item) => item.trim()).filter(Boolean);
 /** Bibliothèque de l'équipe : on y modifie les questions du questionnaire et les règles métier (phrase du CCTP) associées.
@@ -20,6 +20,7 @@ export function TeamQuestionnaireEditor({ canPropose, canPublish, refreshKey, ex
   const [sample, setSample] = useState("");
   const [standard, setStandard] = useState({ state: "idle", template: "" });
   const [openHistory, setOpenHistory] = useState("");
+  const [allHistoryOpen,setAllHistoryOpen]=useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -90,13 +91,23 @@ export function TeamQuestionnaireEditor({ canPropose, canPublish, refreshKey, ex
     setEditing({
       questionId: question.id, kind,
       label: current?.label || question.label, options: current?.options || question.options || "", template: kind === "rule" ? baseTemplate : "",
+      answerType: current?.config?.answer_type || question.answer_type || "text", required: Boolean(current?.config?.required ?? question.required),
+      scope: current?.config?.scope || question.scope || "work", generation: current?.config?.generation || question.generation || { default: "", byAnswer: {} },
+      operation: "update", custom: Boolean(question.agency_custom),
     });
   };
+  const startNew = () => setEditing({ questionId: "", kind: "question", label: "", options: "", template: "", answerType: "single", required: false,
+    scope: "work", generation: { default: "", byAnswer: {} }, operation: "add", custom: true, step: "Personnalisation agence", widgetTitle: "Questions de votre agence" });
   const submit = (event) => {
     event.preventDefault();
     const edit = editing;
     const base = questionById[edit.questionId];
-    const payload = { questionId: edit.questionId, kind: edit.kind, label: edit.kind === "question" && edit.label.trim() !== base.label ? edit.label.trim() : "", options: edit.kind === "question" && edit.options.trim() !== (base.options || "") ? edit.options.trim() : "", template: edit.kind === "rule" ? edit.template.trim() : "" };
+    const config = edit.kind === "question" ? { operation: edit.operation || "update", answer_type: edit.answerType, required: Boolean(edit.required), scope: edit.scope,
+      generation: edit.generation || { default: "", byAnswer: {} }, ...(edit.operation === "add" ? { step: edit.step, widget_title: edit.widgetTitle } : {}) } : {};
+    const payload = { questionId: edit.questionId, kind: edit.kind,
+      label: edit.kind === "question" && (edit.operation === "add" || edit.label.trim() !== base?.label) ? edit.label.trim() : "",
+      options: edit.kind === "question" && (edit.operation === "add" || edit.options.trim() !== (base?.options || "")) ? edit.options.trim() : "",
+      template: edit.kind === "rule" ? edit.template.trim() : "", config };
     if (edit.kind === "question" && !payload.label && !payload.options) { setError("Modifiez le libellé ou les choix avant d'envoyer."); return; }
     run(async () => { await proposeQuestionChange(payload); setEditing(null); }, canPublish ? "Modification publiée : elle s'applique à tous les CCTP de l'équipe." : "Modification proposée : un valideur de l'équipe la relira.");
   };
@@ -120,9 +131,12 @@ export function TeamQuestionnaireEditor({ canPropose, canPublish, refreshKey, ex
         <p>Modifiez une question ou la règle qui en découle dans le CCTP. Une fois la modification validée par un valideur, <b>tous les CCTP de l’équipe</b> appliquent la nouvelle question et la nouvelle règle.</p>
       </div>
       <label className="team-q-search"><Search size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une question…" aria-label="Rechercher une question" /></label>
+      {canPropose && <button type="button" className="primary" data-question-add onClick={startNew}><Plus size={14}/> Ajouter une question</button>}
+      <button type="button" className="secondary" onClick={()=>setAllHistoryOpen(!allHistoryOpen)}><History size={14}/> Historique complet</button>
     </header>
     {error && <div className="login-error" role="alert">{error}</div>}
     {notice && <div className="team-notice" role="status" data-question-notice>{notice}</div>}
+    {allHistoryOpen&&<section className="team-pending"><h3><History size={15}/> Versions du questionnaire</h3>{changes.filter(change=>change.status!=="proposed").map(change=><article key={change.id}><header><b>{change.questionId} · {kindLabel(change)}</b><span className="pill org">{change.status==="validated"?"Version actuelle":change.status==="replaced"?"Version remplacée":"Refusée"}</span></header>{describe(change)}<small>{change.author||"Équipe"} · {new Date(change.validatedAt||change.createdAt).toLocaleString("fr-FR")}</small>{canPublish&&change.status!=="validated"&&<div className="team-actions"><button className="secondary" disabled={busy} onClick={()=>run(()=>restoreQuestionChange(change.id),"Cette version a été restaurée et publiée pour l’équipe.")}><Undo2 size={13}/> Restaurer cette version</button></div>}</article>)}</section>}
 
     {canPublish && pending.length > 0 && <div className="team-pending" data-question-pending>
       <h3><ShieldCheck size={15} /> À valider ({pending.length})</h3>
@@ -163,17 +177,28 @@ export function TeamQuestionnaireEditor({ canPropose, canPublish, refreshKey, ex
               {options.length > 0 && <p className="team-q-options">{options.join(" · ")}</p>}
               <p className="team-q-rule">{rChange ? <><span>Règle de l’équipe :</span> {rChange.template}</> : <span>Règle métier : standard (générée par le moteur)</span>}</p>
               {history.length > 0 && <button type="button" className="team-q-history-toggle" data-question-history-toggle onClick={() => setOpenHistory(openHistory === question.id ? "" : question.id)}><History size={13} /> Voir la modification et son historique ({history.length}) <ChevronDown size={13} /></button>}
-              {openHistory === question.id && <ol className="team-q-history" data-question-history>{history.map((change) => <li key={change.id}><span>{change.status === "validated" ? "Version actuelle" : change.status === "replaced" ? "Version remplacée" : "Proposition refusée"}</span><b>{kindLabel(change)} · {change.author || "Équipe"}</b><small>{new Date(change.validatedAt || change.createdAt).toLocaleString("fr-FR")}</small>{describe(change)}</li>)}</ol>}
+              {openHistory === question.id && <ol className="team-q-history" data-question-history>{history.map((change) => <li key={change.id}><span>{change.status === "validated" ? "Version actuelle" : change.status === "replaced" ? "Version remplacée" : "Proposition refusée"}</span><b>{kindLabel(change)} · {change.author || "Équipe"}</b><small>{new Date(change.validatedAt || change.createdAt).toLocaleString("fr-FR")}</small>{describe(change)}{canPublish&&change.status!=="validated"&&<button type="button" className="secondary" disabled={busy} onClick={()=>run(()=>restoreQuestionChange(change.id),"Cette version a été restaurée.")}><Undo2 size={12}/> Restaurer</button>}</li>)}</ol>}
               {mineWaiting.length > 0 && <small className="team-q-waiting">{mineWaiting.length} modification{mineWaiting.length > 1 ? "s" : ""} en attente de validation</small>}
               {canPropose && <div className="team-actions">
                 <button type="button" data-question-edit={question.id} disabled={busy} onClick={() => startEdit(question, "question")}><Pencil size={13} /> Modifier la question</button>
                 <button type="button" data-rule-edit={question.id} disabled={busy} onClick={() => startEdit(question, "rule")}><Pencil size={13} /> Modifier la règle</button>
                 {canPublish && qChange && <button type="button" disabled={busy} onClick={() => run(() => deleteQuestionChange(qChange.id), "Question rétablie telle que dans le standard.")}><Undo2 size={13} /> Rétablir la question</button>}
                 {canPublish && rChange && <button type="button" disabled={busy} onClick={() => run(() => deleteQuestionChange(rChange.id), "Règle rétablie telle que dans le standard.")}><Undo2 size={13} /> Rétablir la règle</button>}
+                {question.agency_custom && <button type="button" className="delete" disabled={busy} onClick={() => run(() => proposeQuestionChange({ questionId: question.id, kind: "question", config: { operation: "delete" } }), canPublish ? "Question retirée du questionnaire de l’agence." : "Suppression proposée à un valideur.")}><Trash2 size={13}/> Retirer</button>}
               </div>}
               {editing?.questionId === question.id && editing.kind === "question" && <form className="team-q-form" data-question-form onSubmit={submit}>
                 <label>Libellé de la question<input value={editing.label} maxLength={300} onChange={(event) => setEditing({ ...editing, label: event.target.value })} /></label>
                 <label>Choix proposés (séparés par « ; »)<textarea rows={3} value={editing.options} onChange={(event) => setEditing({ ...editing, options: event.target.value })} placeholder="Laissez vide si la question n’a pas de choix prédéfinis" /></label>
+                <div className="team-q-form-grid">
+                  <label>Type de réponse<select value={editing.answerType} onChange={(event) => setEditing({ ...editing, answerType: event.target.value })}><option value="single">Un seul choix</option><option value="multi">Plusieurs choix</option><option value="text">Texte court</option><option value="textarea">Texte long</option><option value="number">Nombre</option><option value="boolean">Oui / Non</option></select></label>
+                  <label>Périmètre<select value={editing.scope} onChange={(event) => setEditing({ ...editing, scope: event.target.value })}><option value="work">Par ouvrage</option><option value="project">Pour tout le projet</option></select></label>
+                  <label className="check"><input type="checkbox" checked={editing.required} onChange={(event) => setEditing({ ...editing, required: event.target.checked })}/> Réponse obligatoire</label>
+                </div>
+                {editing.operation === "add" && <div className="team-q-form-grid"><label>Étape<input value={editing.step} onChange={(event) => setEditing({ ...editing, step: event.target.value })}/></label><label>Groupe<input value={editing.widgetTitle} onChange={(event) => setEditing({ ...editing, widgetTitle: event.target.value })}/></label></div>}
+                <fieldset className="team-q-generation"><legend>Texte généré dans le CCTP</legend><p className="consult-hint">Utilisez <code>{"{{réponse}}"}</code> pour reprendre la valeur. Un texte spécifique peut remplacer le texte par défaut pour chaque choix.</p>
+                  <label>Texte par défaut<textarea rows={2} value={editing.generation?.default || ""} onChange={(event) => setEditing({ ...editing, generation: { ...editing.generation, default: event.target.value } })} placeholder="Ex. La prestation devra respecter : {{réponse}}."/></label>
+                  {optionsOf(editing.options).map((option) => <label key={option}>Si la réponse est « {option} »<textarea rows={2} value={editing.generation?.byAnswer?.[option] || ""} onChange={(event) => setEditing({ ...editing, generation: { ...editing.generation, byAnswer: { ...(editing.generation?.byAnswer || {}), [option]: event.target.value } } })} placeholder="Laisser vide pour utiliser le texte par défaut"/></label>)}
+                </fieldset>
                 <div className="team-actions">
                   <button className="primary" data-question-send disabled={busy}>{canPublish ? "Publier pour l’équipe" : "Proposer à l’équipe"}</button>
                   <button type="button" onClick={() => setEditing(null)}>Annuler</button>
@@ -185,6 +210,16 @@ export function TeamQuestionnaireEditor({ canPropose, canPublish, refreshKey, ex
       </div>;
     })}
     </div>}
+    {editing?.kind === "question" && editing.operation === "add" && <form className="team-q-form team-q-new" data-question-form data-question-new onSubmit={submit}>
+      <h3><Plus size={15}/> Nouvelle question de l’agence</h3>
+      <label>Libellé de la question<input autoFocus value={editing.label} maxLength={300} onChange={(event) => setEditing({ ...editing, label: event.target.value })}/></label>
+      <label>Réponses proposées (séparées par « ; »)<textarea rows={2} value={editing.options} onChange={(event) => setEditing({ ...editing, options: event.target.value })}/></label>
+      <div className="team-q-form-grid"><label>Type<select value={editing.answerType} onChange={(event) => setEditing({ ...editing, answerType: event.target.value })}><option value="single">Un choix</option><option value="multi">Plusieurs choix</option><option value="text">Texte court</option><option value="textarea">Texte long</option><option value="number">Nombre</option><option value="boolean">Oui / Non</option></select></label><label>Périmètre<select value={editing.scope} onChange={(event) => setEditing({ ...editing, scope: event.target.value })}><option value="work">Par ouvrage</option><option value="project">Projet entier</option></select></label></div>
+      <div className="team-q-form-grid"><label>Étape<input value={editing.step} onChange={(event) => setEditing({ ...editing, step: event.target.value })}/></label><label>Groupe<input value={editing.widgetTitle} onChange={(event) => setEditing({ ...editing, widgetTitle: event.target.value })}/></label></div>
+      <label className="check"><input type="checkbox" checked={editing.required} onChange={(event) => setEditing({ ...editing, required: event.target.checked })}/> Réponse obligatoire</label>
+      <fieldset className="team-q-generation"><legend>Texte généré selon la réponse</legend><label>Texte par défaut<textarea rows={2} value={editing.generation.default} onChange={(event) => setEditing({ ...editing, generation: { ...editing.generation, default: event.target.value } })} placeholder="Ex. L’entreprise devra prévoir {{réponse}}."/></label>{optionsOf(editing.options).map((option) => <label key={option}>Si « {option} »<textarea rows={2} value={editing.generation.byAnswer?.[option] || ""} onChange={(event) => setEditing({ ...editing, generation: { ...editing.generation, byAnswer: { ...(editing.generation.byAnswer || {}), [option]: event.target.value } } })}/></label>)}</fieldset>
+      <div className="team-actions"><button className="primary" disabled={busy || !editing.label.trim()}>{canPublish ? "Publier pour l’équipe" : "Proposer à l’équipe"}</button><button type="button" onClick={() => setEditing(null)}>Annuler</button></div>
+    </form>}
     {editing?.kind === "rule" && (() => {
       const question = questionById[editing.questionId];
       return <RuleModal title={validatedBy[`${editing.questionId}:question`]?.label || question?.label || editing.questionId} subtitle={`${editing.questionId} · règle de l’équipe`} onClose={() => setEditing(null)} formProps={{ "data-question-form": "" }}

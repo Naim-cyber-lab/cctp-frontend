@@ -66,6 +66,7 @@ export function SelectionPage({
   const [category, setCategory] = useState("Tous");
   const [query, setQuery] = useState("");
   const documentData = initial?.sections?.__document || {};
+  const [projectProfile,setProjectProfile]=useState({projectType:documentData.projectType||"",client:documentData.client||"",marketType:documentData.marketType||""});
   const [contacts, setContacts] = useState(documentData.coverContacts || "");
   const [subtitle, setSubtitle] = useState(documentData.coverSubtitle || "");
   const [logos, setLogos] = useState(documentData.coverLogos || []);
@@ -424,6 +425,12 @@ export function SelectionPage({
           />
           <small>{name.length}/100</small>
         </label>
+        {!initial&&<div className="cover-setup-fields" style={{marginTop:18}}>
+          <label><span>Type de projet <small>(facultatif)</small></span><input value={projectProfile.projectType} onChange={(e)=>setProjectProfile({...projectProfile,projectType:e.target.value})} placeholder="Ex. Rénovation, neuf…"/></label>
+          <label><span>Client <small>(facultatif)</small></span><input value={projectProfile.client} onChange={(e)=>setProjectProfile({...projectProfile,client:e.target.value})} placeholder="Ex. Ville de Paris"/></label>
+          <label><span>Type de marché <small>(facultatif)</small></span><input value={projectProfile.marketType} onChange={(e)=>setProjectProfile({...projectProfile,marketType:e.target.value})} placeholder="Ex. Marché public"/></label>
+          <small>Ces informations permettent d’appliquer automatiquement le bon modèle documentaire de votre agence.</small>
+        </div>}
       </section>
       {!lotsOnly && (
         <section
@@ -964,6 +971,7 @@ export function SelectionPage({
                       coverLabelText: coverLabel,
                       coverElements,
                       coverAspect,
+                      ...projectProfile,
                       ...coverStyle,
                     },
                     initial ? sectionsForSave() : null,

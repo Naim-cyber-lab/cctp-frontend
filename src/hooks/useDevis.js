@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getDevis, getPriceReferences, getPriceSuggestions, saveDevis } from "../api/client";
+import { getDevis, getPriceReferences, getPriceSuggestions, saveDevis, setDpgfRuleOverride, validateDevisPrices } from "../api/client";
 
 const toNumber = (value) => (value === "" || value === null || value === undefined ? null : Number(String(value).replace(",", ".")));
 const amountOf = (quantity, price) => (quantity === null || quantity === undefined || price === null || price === undefined ? null : Math.round(quantity * price * 100) / 100);
@@ -73,6 +73,38 @@ export function useDevis(cctpId) {
     schedule();
   }, [schedule]);
 
+  // « Utiliser N € » : le prix retenu devient la proposition ; le serveur recalcule la proposition (jamais crue sur parole) et conserve proposé + références
+  const acceptPrice = useCallback((line) => {
+    const proposed = line.priceProposal?.proposedUnitPriceHT;
+    if (proposed === null || proposed === undefined) return;
+    patchLine(line, { unitPrice: proposed });
+    (pending.current.lines[line.stableKey] ||= {}).priceAction = "ACCEPT";
+  }, [patchLine]);
+
+  // « Ne pas utiliser » : la proposition est écartée (journalisée), le PU retenu n'est pas touché
+  const declinePrice = useCallback((line) => { (pending.current.lines[line.stableKey] ||= {}).priceAction = "REJECT"; schedule(); }, [schedule]);
+  // « Utiliser ce prix » sur un standard régional publié (recalculé côté serveur)
+  const acceptStandard = useCallback((line) => {
+    const proposed = line.priceResolution?.unitPriceHT;
+    if (proposed === null || proposed === undefined) return;
+    patchLine(line, { unitPrice: proposed });
+    const entry = (pending.current.lines[line.stableKey] ||= {});
+    delete entry.unitPrice; entry.priceAction = "ACCEPT_STANDARD";
+  }, [patchLine]);
+
+  // « Utiliser la référence agence » (recalculée côté serveur par le résolveur partagé)
+  const acceptAgency = useCallback((line) => {
+    const proposed = line.priceResolution?.unitPriceHT;
+    if (proposed === null || proposed === undefined) return;
+    patchLine(line, { unitPrice: proposed });
+    const entry = (pending.current.lines[line.stableKey] ||= {});
+    delete entry.unitPrice; entry.priceAction = "ACCEPT_AGENCY";
+  }, [patchLine]);
+  // DPGF_VALIDATED : les lignes complètes alimentent l'historique de prix
+  const validatePrices = useCallback(async () => {
+    try { await flush(); const result = await validateDevisPrices(cctpId); setData((current) => ({ ...current, validation: result.validation })); return result.validation; } catch (reason) { setError(reason.message || "Validation impossible."); return null; }
+  }, [flush, cctpId]);
+
   const acknowledge = useCallback((line) => {
     pending.current.acknowledge.add(line.stableKey);
     setData((current) => ({ ...current, lines: current.lines.map((item) => (item.stableKey === line.stableKey ? { ...item, status: item.quantity?.value === null || item.quantity?.value === undefined ? "A_COMPLETER" : "COMPLET" } : item)) }));
@@ -95,12 +127,19 @@ export function useDevis(cctpId) {
         return { ...row, quantity: { value: row.quantity?.value ?? row.quantity ?? null }, amount: amountOf(quantity, price), status: "MANUEL" };
       }),
     }));
-    pending.current.manual = list.map((row) => ({ id: row.id, lotId: row.lotId || "", designation: row.designation, description: row.shortDescription || row.description || "", unit: row.unit, quantity: { value: toNumber(row.quantity?.value ?? row.quantity), unit: row.unit, source: "MANUAL" }, unitPrice: toNumber(row.unitPrice), policyId: row.policyId || "" }));
+    pending.current.manual = list.map((row) => ({ id: row.id, lotId: row.lotId || "LIBRE", designation: row.designation, description: row.shortDescription || row.description || "", unit: row.unit, quantity: { value: toNumber(row.quantity?.value ?? row.quantity), unit: row.unit, source: "MANUAL" }, unitPrice: toNumber(row.unitPrice), policyId: row.policyId || "", itemKey: row.itemKey || "", origin: row.sourceDocumentId ? "DOCUMENT" : (row.origin === "LIBRARY" || row.sourceOrigin === "LIBRARY" || row.itemKey ? "LIBRARY" : "MANUAL"), sourceDocumentId: row.sourceDocumentId || "", sourceRow: row.sourceRow, sourceSheet: row.sourceSheet || "", sourceCell: row.sourceCell || "", externalCode: row.externalCode || "" })); // provenance documentaire conservée : une édition ne casse ni la traçabilité ni l'idempotence
     schedule();
   }, [schedule]);
   const addManual = useCallback((lotId) => writeManual([...(data?.manualLines || []), { id: crypto.randomUUID(), lotId, designation: "", shortDescription: "", unit: "u", quantity: { value: null }, unitPrice: null }]), [data, writeManual]);
   const updateManual = useCallback((id, change) => writeManual((data?.manualLines || []).map((row) => (row.id === id ? { ...row, ...change } : row))), [data, writeManual]);
   const removeManual = useCallback((id) => writeManual((data?.manualLines || []).filter((row) => row.id !== id)), [data, writeManual]);
+  // « Ajouter depuis la bibliothèque » : crée une ligne libre depuis un poste du catalogue (et, au choix, le prix d'une référence d'agence)
+  const addFromLibrary = useCallback((lotId, item, reference) => {
+    writeManual([...(data?.manualLines || []), { id: crypto.randomUUID(), lotId, designation: item.label, shortDescription: reference ? `${reference.provenance || "Référence agence"}${reference.note ? ` — ${reference.note}` : ""}` : "", unit: item.unit || "u",
+    quantity: { value: null }, unitPrice: reference ? reference.unit_price_eur : null, itemKey: item.itemKey || "", origin: "LIBRARY" }]);
+    // une vraie ligne DPGF canonique : écrite tout de suite côté serveur (pas d'attente de la saisie différée), qui synchronise aussi le Planning
+    clearTimeout(timer.current); flush();
+  }, [data, writeManual, flush]);
 
   // éléments que l'agence veut chiffrer à part : « ajouter » crée aussi l'élément libre correspondant dans le lot ; « compris » ou « retirer » le retire
   const saveCustomItems = useCallback((items, manualLines) => {
@@ -110,9 +149,12 @@ export function useDevis(cctpId) {
   }, [schedule, writeManual]);
 
   // adopter explicitement les règles de chiffrage actuelles de l'agence (jamais rétroactif sinon)
+  const setRuleOverride = useCallback(async (ruleKey, skip) => {
+    try { await flush(); const next = await setDpgfRuleOverride(cctpId, ruleKey, skip); setData(next); } catch (reason) { setError(reason.message || "Modification impossible."); }
+  }, [cctpId, flush]);
   const syncAgencyRules = useCallback(async () => {
     try { await flush(); const next = await saveDevis(cctpId, { syncAgencyPolicy: true }); setData(next); } catch (reason) { setError(reason.message || "Mise à jour impossible."); }
   }, [flush, cctpId]);
 
-  return { data, error, saving, suggestions, summaries, refreshSuggestions, syncAgencyRules, references, reload: load, patchLine, acknowledge, setPolicy, addManual, updateManual, removeManual, saveCustomItems };
+  return { cctpId, data, error, saving, suggestions, summaries, refreshSuggestions, syncAgencyRules, setRuleOverride, references, reload: load, patchLine, acceptPrice, declinePrice, acceptStandard, acceptAgency, addFromLibrary, validatePrices, acknowledge, setPolicy, addManual, updateManual, removeManual, saveCustomItems };
 }

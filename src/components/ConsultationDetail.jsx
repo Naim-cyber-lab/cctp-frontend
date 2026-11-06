@@ -24,6 +24,109 @@ async function openDocument(path, name) {
 const fold = (text) => String(text || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Options à chiffrer : définies par le MOE, identiques pour toutes les entreprises du lot, figées dans l'indice du DCE. */
+const QUANTITY_MODES = [
+  ["PROVIDED", "Communiquées", "Les quantités du DPGF seront transmises aux entreprises."],
+  ["INDICATIVE", "Indicatives", "Les quantités seront transmises comme base de consultation, avec une mention indiquant leur caractère indicatif."],
+  ["COMPANY_TO_FILL", "À renseigner par l’entreprise", "Les postes et unités seront transmis, mais les entreprises devront renseigner leurs propres quantités."],
+];
+
+/** Consultation › Dossier : quantités du DPGF réellement envoyé (le DPGF interne n'est jamais modifié ; les prix du MOE ne sont jamais transmis). */
+function DpgfQuantityCard({ id, data, run }) {
+  const mode = data.settings?.quantityDisclosureMode || "PROVIDED";
+  const [preview, setPreview] = useState(null);
+  const locked = data.status !== "DRAFT" && data.status !== "READY";
+  useEffect(() => { apiFetch(`/consultations/${id}/dpgf-preview`).then(setPreview).catch(() => setPreview(null)); }, [id, mode, data.lots?.length, data.settings?.quantityLineOverrides]);
+  const choose = (value) => run(async () => { await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ quantityDisclosureMode: value }) }); });
+  const summary = preview?.summary;
+  const chooseLine = (key, value) => run(async () => {
+    const current = Object.fromEntries((preview?.rows || []).filter((row) => row.override !== "INHERIT").map((row) => [row.key, row.override]));
+    await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ quantityLineOverrides: { ...current, [key]: value } }) });
+  });
+  return (
+    <article className="consult-card" data-dpgf-quantity-card>
+      <h4>DPGF envoyé aux entreprises</h4>
+      <fieldset disabled={locked} style={{ border: 0, padding: 0 }}><legend>Quantités</legend>
+        {QUANTITY_MODES.map(([value, label, help]) => <label key={value} className="inline-check" style={{ display: "block" }}>
+          <input type="radio" name="quantity-mode" data-dpgf-quantity-mode={value} checked={mode === value} onChange={() => choose(value)} /> <b>{label}</b><small className="muted" style={{ display: "block", marginLeft: 22 }}>{help}</small></label>)}
+      </fieldset>
+      <p className="consult-hint">Vos quantités internes restent dans le DPGF, l’estimation et le planning ; seul le fichier transmis change. Les prix et estimations du MOE ne sont jamais transmis.</p>
+      {summary && <div data-dpgf-preview>
+        <p data-dpgf-summary><b>{summary.lines} poste{summary.lines > 1 ? "s" : ""} transmis</b> · {summary.moePricesTransmitted} prix MOE transmis{mode !== "COMPANY_TO_FILL" && <> · {summary.quantitiesGiven} quantité{summary.quantitiesGiven > 1 ? "s" : ""} renseignée{summary.quantitiesGiven > 1 ? "s" : ""}</>}</p>
+        {mode !== "COMPANY_TO_FILL" && summary.quantitiesMissingInProject > 0 && <p className="warn" data-dpgf-missing>{summary.quantitiesMissingInProject} poste{summary.quantitiesMissingInProject > 1 ? "s n’ont" : " n’a"} pas de quantité : complétez le DPGF ou envoyez malgré tout.</p>}
+        {preview.notice && <p className="consult-hint" data-dpgf-notice>{preview.notice}</p>}
+        <table className="consult-table compact"><thead><tr>{preview.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead>
+          <tbody>{preview.rows.slice(0, 12).map((row, index) => <tr key={index}><td>{row.lot}</td><td>{row.designation}</td><td>{row.unit}</td><td data-dpgf-qty>{row.quantity ?? ""}</td><td /><td /></tr>)}</tbody></table>
+        {preview.rows.length > 12 && <p className="muted">… et {preview.rows.length - 12} autres postes.</p>}
+        {summary.overrides > 0 && <p data-dpgf-overrides-count>{summary.overrides} poste{summary.overrides > 1 ? "s" : ""} traité{summary.overrides > 1 ? "s" : ""} à part (exception au mode choisi).</p>}
+        <details data-dpgf-line-overrides><summary>Traiter certains postes autrement</summary>
+          <p className="consult-hint">Par défaut chaque poste suit le mode ci-dessus. Vous pouvez par exemple communiquer les quantités de cloisons et laisser l’entreprise quantifier les réservations.</p>
+          <table className="consult-table compact"><tbody>{preview.rows.map((row) => <tr key={row.key} data-dpgf-line={row.key}><td>{row.designation}</td><td>
+            <select disabled={locked} value={row.override} data-dpgf-line-override aria-label={`Quantité de ${row.designation}`} onChange={(e) => chooseLine(row.key, e.target.value)}>
+              <option value="INHERIT">Comme la consultation</option><option value="PROVIDED">Communiquer la quantité</option><option value="COMPANY_TO_FILL">À renseigner par l’entreprise</option></select></td></tr>)}</tbody></table></details>
+      </div>}
+    </article>
+  );
+}
+
+const PLANNING_STATUSES = [["INDICATIVE", "Indicatif", "Planning prévisionnel communiqué à titre indicatif."], ["TO_RESPECT", "À respecter", "Les principales échéances et contraintes indiquées doivent être prises en compte dans l’offre."],
+  ["CONTRACTUAL", "Contractuel", "Le Planning constitue une pièce contractuelle selon les dispositions définies dans le marché."]];
+const monthYear = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+/** Consultation › Dossier : Planning prévisionnel joint automatiquement (projection du Planning Calepin, figée à l'envoi). */
+function PlanningCard({ id, data, run }) {
+  const planning = data.planning;
+  if (!planning) return null;
+  const mode = data.settings?.planningStatus || "INDICATIVE";
+  const locked = data.status !== "DRAFT" && data.status !== "READY";
+  const choose = (value) => run(async () => { await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ planningStatus: value }) }); });
+  const scope = data.settings?.planningScope || "CONSULTATION";
+  const chooseScope = (value) => run(async () => { await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ planningScope: value }) }); });
+  const drop = () => run(async () => { await apiFetch(`/consultations/${id}/settings`, { method: "PUT", body: JSON.stringify({ includePlanning: false }) }); });
+  return (
+    <article className="consult-card" data-planning-card>
+      <h4>Planning prévisionnel des travaux</h4>
+      <p data-planning-version>Planning V{planning.version} · {planning.sent ? <>Figé à l’envoi (V{planning.sent.version} · {planning.sent.statusLabel})</> : "Sera figé à l’envoi"}</p>
+      {planning.period && <p data-planning-period><b>Période prévisionnelle des travaux</b><br />{monthYear.format(new Date(planning.period.start))} → {monthYear.format(new Date(planning.period.finish))}{planning.months ? ` · ${planning.months} mois` : ""}</p>}
+      <fieldset disabled={locked} style={{ border: 0, padding: 0 }}><legend>Statut du Planning</legend>
+        {PLANNING_STATUSES.map(([value, label, help]) => <label key={value} className="inline-check" style={{ display: "block" }}>
+          <input type="radio" name="planning-status" data-planning-status={value} checked={mode === value} onChange={() => choose(value)} /> <b>{label}</b><small className="muted" style={{ display: "block", marginLeft: 22 }}>{help}</small></label>)}
+      </fieldset>
+      <fieldset disabled={locked} style={{ border: 0, padding: 0 }} data-planning-scope-group><legend>Lots couverts par le Planning</legend>
+        {[["CONSULTATION", "Uniquement les lots de cette consultation", "Joint aux entreprises du lot couvert par le Planning (recommandé)."], ["GLOBAL", "Planning global", "Joint à toutes les entreprises de la consultation, quel que soit leur lot."]].map(([value, label, help]) => <label key={value} className="inline-check" style={{ display: "block" }}>
+          <input type="radio" name="planning-scope" data-planning-scope={value} checked={scope === value} onChange={() => chooseScope(value)} /> <b>{label}</b><small className="muted" style={{ display: "block", marginLeft: 22 }}>{help}</small></label>)}
+      </fieldset>
+      {planning.milestoneCount > 0 && <p data-planning-milestones>{planning.milestoneCount} jalon{planning.milestoneCount > 1 ? "s" : ""} mis en évidence dans le document.</p>}
+      {planning.blocking.map((message) => <p key={message} className="err" role="alert" data-planning-blocking>Bloquant : {message}</p>)}
+      {planning.warnings.map((warning) => <p key={warning} className="warn" data-planning-warning>À vérifier : {warning}</p>)}
+      {planning.history.length > 0 && <details data-planning-history><summary>Historique des envois du Planning</summary>
+        <ul>{planning.history.map((entry) => <li key={entry.revisionIndex} data-planning-history-item>Indice {entry.revisionIndex} · Planning V{entry.planningVersion} · {entry.statusLabel} · figé le {new Date(entry.frozenAt).toLocaleDateString("fr-FR")}
+          {entry.companies.length ? <ul>{entry.companies.map((company) => <li key={company.name}>{company.name} a reçu Planning V{entry.planningVersion}{company.invitedAt ? ` (envoyé le ${new Date(company.invitedAt).toLocaleDateString("fr-FR")})` : ""}</li>)}</ul> : <small className="muted"> · pas encore envoyé à une entreprise</small>}</li>)}</ul></details>}
+      {planning.changedSinceSent && <p className="warn" data-planning-changed>Le Planning a été modifié depuis l’envoi : les entreprises gardent la version figée. Publiez un nouvel indice pour leur transmettre la mise à jour.</p>}
+      {!locked && <button type="button" className="secondary" data-planning-drop onClick={drop}>Ne pas joindre le Planning</button>}
+    </article>
+  );
+}
+
+/** Consultation › Vérification : ce que verra l'entreprise dans le DPGF (quantités, prix internes), lu sur l'aperçu réel. */
+function DpgfVerification({ id, data }) {
+  const [preview, setPreview] = useState(null);
+  const mode = data.settings?.quantityDisclosureMode || "PROVIDED";
+  useEffect(() => { apiFetch(`/consultations/${id}/dpgf-preview`).then(setPreview).catch(() => setPreview(null)); }, [id, mode, data.settings?.quantityLineOverrides]);
+  if (!preview) return null;
+  const summary = preview.summary;
+  const label = { PROVIDED: "Communiquées", INDICATIVE: "Indicatives", COMPANY_TO_FILL: "À renseigner par les entreprises" }[mode];
+  return <div className="consult-card" data-dpgf-verification>
+    <b>DPGF</b>
+    <ul>
+      <li data-dpgf-verif-mode>Quantités : {label}</li>
+      <li data-dpgf-verif-prices>Prix internes : Non transmis · {summary.moePricesTransmitted} prix MOE transmis</li>
+      <li>{summary.lines} poste{summary.lines > 1 ? "s" : ""} transmis</li>
+      {mode !== "COMPANY_TO_FILL" && <li data-dpgf-verif-given>{summary.quantitiesGiven} quantité{summary.quantitiesGiven > 1 ? "s" : ""} {mode === "INDICATIVE" ? "indicative" : "communiquée"}{summary.quantitiesGiven > 1 ? "s" : ""}</li>}
+      {summary.quantitiesToFill > 0 && <li data-dpgf-verif-tofill>{summary.quantitiesToFill} quantité{summary.quantitiesToFill > 1 ? "s" : ""} à renseigner par l’entreprise</li>}
+      {summary.quantitiesMissingInProject > 0 && <li className="warn" data-dpgf-verif-missing>{summary.quantitiesMissingInProject} poste{summary.quantitiesMissingInProject > 1 ? "s n’ont" : " n’a"} pas de quantité : complétez le DPGF ou envoyez malgré tout (non bloquant).</li>}
+    </ul></div>;
+}
+
 function OptionsEditor({ id, data, run }) {
   const [items, setItems] = useState(() => data.options || []);
   const [dirty, setDirty] = useState(false);
@@ -112,9 +215,11 @@ export function ConsultationDetail({ id, project, initialTab, onBack }) {
     { ok: data.companies.length > 0, text: data.companies.length ? `${data.companies.length} entreprise${data.companies.length > 1 ? "s" : ""} invitée${data.companies.length > 1 ? "s" : ""}` : "Aucune entreprise sélectionnée" },
     { ok: Boolean(data.responseDeadline), text: data.responseDeadline ? `Réponse avant le ${dateTime.format(new Date(data.responseDeadline))}` : "Date limite non renseignée" },
     { ok: !lotsWithoutEstimate.length, warn: true, text: !lotsWithoutEstimate.length ? "Estimation MOE renseignée pour chaque lot (jamais visible des entreprises)" : `Estimation manquante pour : ${lotsWithoutEstimate.map((l) => `lot ${l.lotId} · ${l.title}`).join(" ; ")} (facultatif : elle sert à comparer les offres)`, lots: lotsWithoutEstimate },
+    ...(data.planning?.blocking?.length ? [{ ok: false, text: `Planning : ${data.planning.blocking.join(" ")}` }] : []),
+    ...(data.planning ? [{ ok: !data.planning.warnings.length, warn: true, text: data.planning.warnings.length ? `Planning : ${data.planning.warnings.join(" ")}` : `Planning V${data.planning.version} joint au dossier (${data.planning.statusLabel})` }] : []),
     { ok: data.companies.every((c) => c.email), warn: true, text: data.companies.every((c) => c.email) ? "Toutes les entreprises ont une adresse e-mail" : "Une entreprise n'a pas d'e-mail : vous devrez lui transmettre le lien vous-même" },
   ];
-  const blocking = checks.slice(0, 3).some((c) => !c.ok);
+  const blocking = checks.slice(0, 3).some((c) => !c.ok) || Boolean(data.planning?.blocking?.length);
 
   return (
     <section className="consult-detail" data-consult-detail>
@@ -157,8 +262,10 @@ export function ConsultationDetail({ id, project, initialTab, onBack }) {
               <p className="consult-hint">À l'envoi, le dossier est <b>figé</b> en une version : une modification ultérieure du CCTP ne change jamais ce que les entreprises ont reçu. Cliquez sur un document pour le consulter.</p>
               <ul className="consult-docs" data-consult-docs>
                 {data.lots.map((l) => <li key={l.lotId}><button type="button" className="doc-link" data-consult-doc={`cctp-${l.lotId}`} onClick={() => openDocument(`/consultations/${id}/dossier/cctp.pdf?lot=${l.lotId}`, `CCTP-lot-${l.lotId}.pdf`).catch((e) => setError(e.message))}><Eye size={14} /> CCTP — lot {l.lotId} · {l.title}</button></li>)}
-                {data.documents.map((d) => <li key={d.name}><button type="button" className="doc-link" data-consult-doc={d.id || d.name} onClick={() => openDocument(d.name === "CCTP.pdf" ? `/consultations/${id}/dossier/cctp.pdf` : d.name === "DPGF.xlsx" ? `/consultations/${id}/dossier/dpgf.xlsx` : `/consultations/${id}/dossier/documents/${d.id}`, d.name).catch((e) => setError(e.message))}><Eye size={14} /> {d.name}{d.size ? <small> ({Math.round(d.size / 1024)} Ko)</small> : null}</button></li>)}
+                {data.documents.map((d) => <li key={d.name}><button type="button" className="doc-link" data-consult-doc={d.id || d.name} onClick={() => openDocument(d.name === "CCTP.pdf" ? `/consultations/${id}/dossier/cctp.pdf` : d.name === "DPGF.xlsx" ? `/consultations/${id}/dossier/dpgf.xlsx` : d.kind === "planning" ? `/consultations/${id}/dossier/planning.pdf` : `/consultations/${id}/dossier/documents/${d.id}`, d.name).catch((e) => setError(e.message))}><Eye size={14} /> {d.name}{d.size ? <small> ({Math.round(d.size / 1024)} Ko)</small> : null}</button></li>)}
               </ul>
+              <PlanningCard id={id} data={data} run={run} />
+              <DpgfQuantityCard id={id} data={data} run={run} />
               <OptionsEditor id={id} data={data} run={run} />
             </>}
             {step === 3 && <>
@@ -168,6 +275,7 @@ export function ConsultationDetail({ id, project, initialTab, onBack }) {
             {step === 4 && <>
               <h3>5 · Vérification</h3>
               <ul className="consult-checks" data-consult-checks>{checks.map((c) => <li key={c.text} className={c.ok ? "ok" : c.warn ? "warn" : "bad"}>{c.ok ? "✓" : c.warn ? "!" : "✗"} {c.text}</li>)}</ul>
+              <DpgfVerification id={id} data={data} />
             </>}
             {step === 5 && <>
               <h3>6 · Envoyer</h3>

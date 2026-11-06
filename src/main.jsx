@@ -61,6 +61,7 @@ import './watermark.css';
 import './chapter-start.css';
 import './collaboration.css';
 import './project-centric.css';
+import './site-assistant.css';
 
 // StrictMode remonte volontairement tous les composants deux fois en développement.
 // Sur de gros CCTP cela doublait les appels API, les scans orthographiques et le rendu.

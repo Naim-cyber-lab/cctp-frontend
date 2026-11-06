@@ -103,3 +103,24 @@
 .team-invitations{display:grid;gap:8px;margin-top:4px}.team-invitations ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}.team-invitations li{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px dashed #cfd9d4;border-radius:10px;padding:7px 10px;font-size:13px}
 .team-rename,.team-rename-form button{display:inline-flex;gap:5px;align-items:center;border:1px solid #cfd9d4;background:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;width:max-content}
 .team-rename-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.team-rename-form input{border:1px solid #d5ddd8;border-radius:9px;padding:7px 10px;font:inherit;min-width:220px}
+
+.pl-demo-summary { margin: 8px 0; padding: 8px 12px; background: #eef6f1; border-radius: 10px; font-size: 14px; }
+.pl-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.pl-badge.doc { background: #e3f1e8; color: #1f5a46; }
+.pl-badge.demo { background: #fff3d6; color: #8a5a00; }
+.pl-prov-document, .pl-prov-demo { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 12.5px; }
+.document-template-studio{display:grid;gap:24px}.document-template-studio>header,.assignment-rules>header{display:flex;align-items:center;justify-content:space-between;gap:16px}.document-template-studio h2,.document-template-studio h3{margin:0}.document-template-studio p{color:#64756f;margin:5px 0}.template-studio-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px}.template-studio-layout>aside{display:grid;align-content:start;gap:8px}.template-studio-layout>aside button{text-align:left;padding:14px;border:1px solid #dce4df;background:white;border-radius:12px;display:grid;gap:4px}.template-studio-layout>aside button.active{border-color:#315f51;background:#edf5f0}.template-form,.assignment-rules,.questionnaire-import-test{border:1px solid #dce4df;border-radius:18px;background:#fff;padding:22px;display:grid;gap:18px}.template-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.template-fields.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.template-fields.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.template-fields label{display:grid;gap:6px;font-weight:650}.template-fields input,.template-fields select,.assignment-row input,.assignment-row select{min-height:42px;border:1px solid #cfdad4;border-radius:9px;padding:8px 10px}.check-line{display:flex!important;align-items:center;gap:8px;padding-top:24px}.check-line input{min-height:auto}.studio-actions{display:flex;gap:10px;flex-wrap:wrap}.document-template-preview{min-height:330px;padding:35px 45px;border:1px solid #d7ded9;box-shadow:0 12px 32px rgba(20,49,40,.09);background:white}.document-template-preview h3{font-size:24px;margin:45px 0 26px}.document-template-preview footer{border-top:1px solid #ccd6d0;margin-top:70px;padding-top:10px;font-size:10px}.assignment-rules{margin-top:4px}.assignment-row{display:grid;grid-template-columns:1.1fr repeat(3,1fr) 36px;gap:8px}.questionnaire-import-test{grid-template-columns:repeat(2,minmax(0,1fr))}.questionnaire-import-test>div{display:grid;align-content:start;gap:10px}.questionnaire-import-test pre{white-space:pre-wrap;background:#f4f7f4;padding:14px;border-radius:10px;max-height:260px;overflow:auto}.file-action{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #b9c9c1;border-radius:9px;cursor:pointer;width:max-content}.file-action input{display:none}.form-success{display:flex;align-items:center;gap:7px;color:#17693f}.form-error{color:#a53228}.danger{color:#ad3026!important}@media(max-width:900px){.template-studio-layout,.questionnaire-import-test{grid-template-columns:1fr}.template-fields.cols-3,.template-fields.cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}.assignment-row{grid-template-columns:1fr 1fr}.template-studio-layout>aside{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Modèles CCTP : réglages à gauche, aperçu fixe à droite (grand écran) ; sur petit écran l'aperçu passe en tête, sans défilement horizontal */
+.template-form{position:relative}
+.template-live-column{display:flex;justify-content:center;max-width:100%;overflow:hidden}
+.template-section{font-size:15px;color:#315f51;border-bottom:1px solid #dce4df;padding-bottom:4px;margin-top:6px!important}
+.template-margin-preset{display:grid;gap:6px;font-weight:650;max-width:320px}
+.template-margin-preset select{min-height:42px;border:1px solid #cfdad4;border-radius:9px;padding:8px 10px}
+@media(min-width:1280px){
+  .template-form{grid-template-columns:minmax(0,1fr) 440px;align-items:start}
+  .template-form>*{grid-column:1}
+  .template-form>.template-live-column{grid-column:2;grid-row:1 / span 40;position:sticky;top:12px;display:block}
+}
+.template-form>*{min-width:0}
+.template-fields input,.template-fields select{min-width:0;width:100%;box-sizing:border-box}

@@ -17,13 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ImportCctpModal } from "../components/ImportCctpModal";
 import { ShareCctpModal } from "../components/ShareCctpModal";
 import { ProjectMembers } from "../components/ProjectMembers";
 import { chapters as lotCatalog } from "../data/chapters";
 import { useWorkspaces } from "../hooks/useWorkspaces";
 import { useProjectFacts } from "../hooks/useProjectFacts";
 import { summarizeProject } from "../utils/projectFacts";
+import { byLastOpened } from "../utils/recentProjects";
 import { CCTP_STATUS, cctpStatusLabel } from "../utils/statuses";
 
 const dateLabel = (value) =>
@@ -102,7 +102,7 @@ export function ProjectsPage({
         filter === "all" ||
         (filter === "none" ? !project.folderId : project.folderId === filter),
     ).length;
-  const visible = inScope.filter(
+  const visible = byLastOpened(inScope).filter(   // les derniers projets consultés d'abord
     (project) =>
       `${project.name} ${lotNames(project)}`.toLowerCase().includes(search.trim().toLowerCase()) &&
       (activeFilter === "all" ||
@@ -122,6 +122,7 @@ export function ProjectsPage({
         await onRenameFolder(folderForm.id, folderForm.name);
       } else {
         const created = await onCreateFolder(folderForm.name);
+        if (folderForm.projectId) await onPatch(folderForm.projectId, { folderId: created.id });   // projet glissé sur « + » : rangé dans le nouveau dossier
         setFolderFilter(created.id);
       }
       setFolderForm(null);
@@ -191,12 +192,6 @@ export function ProjectsPage({
           </p>
         </div>
       </section>}
-      {importOpen && (
-        <ImportCctpModal
-          onClose={() => setImportOpen(false)}
-          onImport={onImport}
-        />
-      )}
       {sharing && <ShareCctpModal project={sharing} onClose={()=>setSharing(null)} onChanged={onRefresh}/>} 
       <div className="library-toolbar">
         {!team && <nav className="project-tabs">
@@ -245,14 +240,6 @@ export function ProjectsPage({
           )}
         </label>
         {!team && <div className="library-actions">
-          <button
-            className="secondary"
-            title="Ouvre un PDF ou Word comme un CCTP à modifier"
-            disabled={!canWrite}
-            onClick={() => setImportOpen(true)}
-          >
-            <FileUp size={17} /> Importer
-          </button>
           <button className="primary" onClick={onNew} disabled={!canWrite} title={canWrite ? undefined : "Votre rôle de lecteur ne permet pas de créer un document"}>
             <Plus size={17} /> Nouveau projet
           </button>
@@ -307,13 +294,28 @@ export function ProjectsPage({
           ))}
           <button
             type="button"
-            className="folder-add"
+            className={`folder-add ${dropFolder === "new" ? "drop-target" : ""}`}
             data-folder-add
-            title="Créer un dossier"
+            title="Créer un dossier (ou glissez un projet ici pour le ranger dans un nouveau dossier)"
             aria-label="Créer un dossier"
             onClick={() => {
               setFolderError("");
               setFolderForm({ id: null, name: "" });
+            }}
+            onDragOver={(event) => {
+              if (!draggedProject) return;
+              event.preventDefault();
+              setDropFolder("new");
+            }}
+            onDragLeave={() => setDropFolder(null)}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (!draggedProject) return;
+              const project = draggedProject;
+              setDraggedProject(null);
+              setDropFolder(null);
+              setFolderError("");
+              setFolderForm({ id: null, name: "", projectId: project.id, projectName: project.name });   // dépôt sur « + » : nouveau dossier qui accueillera ce projet
             }}
           >
             <Plus size={15} />
@@ -379,6 +381,7 @@ export function ProjectsPage({
             placeholder="Nom du dossier (ex. Résidence Les Érables)"
             aria-label="Nom du dossier"
           />
+          {folderForm.projectName && <small className="muted" data-folder-drop-hint>Le projet « {folderForm.projectName} » sera rangé dans ce dossier.</small>}
           <button
             type="submit"
             className="primary"
@@ -505,11 +508,12 @@ export function ProjectsPage({
                   </small>
                   {project.shared && <ProjectMembers project={project}/>}
                   {portfolio ? (() => {
-                    const pulse = summarizeProject({ project, progress, estimate: facts[project.id]?.estimate, consultations: facts[project.id]?.consultations || [] });
+                    const pulse = summarizeProject({ project, progress, estimate: facts[project.id]?.estimate, consultations: facts[project.id]?.consultations || [], feasibility: facts[project.id]?.feasibility });
                     const loaded = Boolean(facts[project.id]) || project.archived;
                     return <ul className="project-bricks" data-project-bricks>
+                      <li data-brick="feasibility"><b>Faisabilité</b><span>{loaded ? pulse.feasibility.label : "…"}</span></li>
                       <li data-brick="cctp"><b>CCTP</b><span>{pulse.cctp.ready} / {pulse.cctp.total} lot{pulse.cctp.total > 1 ? "s" : ""} prêt{pulse.cctp.ready > 1 ? "s" : ""}</span></li>
-                      <li data-brick="estimate"><b>DPGF</b><span>{loaded ? (pulse.estimate.total ? `${pulse.estimate.done} / ${pulse.estimate.total} postes chiffrés` : "Pas encore chiffrée") : "…"}</span></li>
+                      <li data-brick="estimate"><b>DPGF</b><span>{loaded ? (pulse.estimate.total ? `${pulse.estimate.documentImported ? `${pulse.estimate.documentImported} poste${pulse.estimate.documentImported > 1 ? "s" : ""} importé${pulse.estimate.documentImported > 1 ? "s" : ""} · ` : ""}${pulse.estimate.done} / ${pulse.estimate.total} chiffré${pulse.estimate.total > 1 ? "s" : ""}` : "Pas encore chiffrée") : "…"}</span></li>
                       <li data-brick="consultation"><b>Consultation</b><span>{loaded ? (pulse.consultations.total ? `${pulse.consultations.open} ouverte${pulse.consultations.open > 1 ? "s" : ""} · ${pulse.consultations.received} offre${pulse.consultations.received > 1 ? "s" : ""} reçue${pulse.consultations.received > 1 ? "s" : ""}` : "Aucune consultation") : "…"}</span></li>
                       {loaded && pulse.attention > 0 && <li className="attention" data-brick-attention><b>{pulse.attention} point{pulse.attention > 1 ? "s" : ""} à traiter</b></li>}
                       {loaded && <li className="next" data-brick-next><b>Prochaine action</b><span>{pulse.next.label}</span></li>}

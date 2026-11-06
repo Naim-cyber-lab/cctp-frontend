@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Download, FileUp, LoaderCircle, Plus, Send, Trash2 } from "lucide-react";
+import { CheckCircle2, Download, FileUp, Lock, LoaderCircle, Plus, Send, Trash2 } from "lucide-react";
 import { apiFetch } from "../api/client";
 import "../consultations.css";
 
@@ -86,7 +86,7 @@ export function CompanyPortalPage({ token }) {
           <p className="consult-hint">Consultez le dossier puis commencez votre offre : vous pourrez l'enregistrer en brouillon et la remettre quand elle est prête.</p>
           <div className="consult-buttons"><button className="primary" data-portal-start onClick={() => { setError(""); portalFetch(`/consult/${token}/start`, { method: "POST" }).then(setView).catch((e) => setError(e.message)); }}>Commencer mon offre</button></div>
         </section>
-      ) : lots.map((lot) => <LotOffer key={`${lot.lotId}-${consultation.revision}`} token={token} lot={lot} editable={editable} required={view.requiredDocuments || []} onChange={load} />)}
+      ) : lots.map((lot) => <LotOffer key={`${lot.lotId}-${consultation.revision}`} token={token} lot={lot} editable={editable} required={view.requiredDocuments || []} policy={view.policy || null} onChange={load} />)}
       {!company.declined && <Questions token={token} view={view} setView={setView} editable={consultation.open} />}
     </main>
   );
@@ -97,10 +97,15 @@ const SEVERITY = { "": "Non précisée", LOW: "Faible", MEDIUM: "Moyenne", HIGH:
 const newId = () => Math.random().toString(36).slice(2, 10);
 const rowsFrom = (lot) => lot.lines.map((line) => {
   const saved = lot.offer.lines.find((item) => item.key === line.key) || {};
-  return { ...line, unitPrice: saved.unitPrice ?? "", disputedQuantity: saved.disputedQuantity ?? "", justification: saved.justification ?? "", disputeOpen: saved.disputedQuantity != null, proposedUnit: saved.proposedUnit ?? "", comment: saved.comment ?? "" };
+  return { ...line, unitPrice: saved.unitPrice ?? "", disputedQuantity: saved.disputedQuantity ?? "", justification: saved.justification ?? "", disputeOpen: saved.disputedQuantity != null, proposedUnit: saved.proposedUnit ?? "", comment: saved.comment ?? "", brand: saved.brand ?? "", productReference: saved.productReference ?? "" };
 });
 
-function LotOffer({ token, lot, editable, required, onChange }) {
+function LotOffer({ token, lot, editable: canEdit, required, policy = null, onChange }) {
+  // Cadre DPGF de l'agence (figé à la création de la consultation) ; sans politique : comportement historique
+  const askBrand = policy && policy.brand !== "NOT_ASKED", askReference = policy && policy.product_reference !== "NOT_ASKED";
+  const allowDispute = !policy || policy.company_quantity !== "NOT_ALLOWED";
+  const allowOptions = !policy || policy.options !== "NOT_ALLOWED", allowVariants = !policy || policy.variants !== "NOT_ALLOWED";
+  const columns = 6 + (askBrand ? 1 : 0) + (askReference ? 1 : 0);
   const [rows, setRows] = useState(() => rowsFrom(lot));
   const [extras] = useState(() => lot.offer.extras || []);
   const [options, setOptions] = useState(() => lot.offer.options || []);
@@ -108,6 +113,9 @@ function LotOffer({ token, lot, editable, required, onChange }) {
   const [reservations, setReservations] = useState(() => lot.offer.reservations || []);
   const [total, setTotal] = useState(lot.offer.total ?? "");
   const [offer, setOffer] = useState(lot.offer);
+  // Une offre remise n'est plus modifiable tant que le dossier n'a pas changé d'indice : l'entreprise attend la réponse du maître d'œuvre
+  const locked = offer.status === "SUBMITTED" && offer.version > 0 && !lot.offerOutdated;
+  const editable = canEdit && !locked;
   const [msg, setMsg] = useState("");
   const [warnings, setWarnings] = useState(null);
   const [importState, setImportState] = useState(null);
@@ -116,7 +124,7 @@ function LotOffer({ token, lot, editable, required, onChange }) {
   const disputedTotal = rows.some((row) => row.disputeOpen && row.disputedQuantity !== "") ? rows.reduce((sum, row) => sum + (row.unitPrice !== "" ? Number(row.unitPrice) * Number(row.disputeOpen && row.disputedQuantity !== "" ? row.disputedQuantity : row.quantity || 0) : 0), 0) : null;
   const computed = rows.reduce((sum, row) => sum + (row.unitPrice !== "" && row.quantity ? Number(row.unitPrice) * Number(row.quantity) : 0), 0);
   const body = () => JSON.stringify({
-    lines: rows.map((row) => ({ key: row.key, unitPrice: row.unitPrice === "" ? null : Number(row.unitPrice), disputedQuantity: row.disputeOpen && row.disputedQuantity !== "" ? Number(row.disputedQuantity) : null, justification: row.disputeOpen ? row.justification : "", proposedUnit: row.proposedUnit, comment: row.comment })),
+    lines: rows.map((row) => ({ key: row.key, unitPrice: row.unitPrice === "" ? null : Number(row.unitPrice), disputedQuantity: row.disputeOpen && row.disputedQuantity !== "" ? Number(row.disputedQuantity) : null, justification: row.disputeOpen ? row.justification : "", proposedUnit: row.proposedUnit, comment: row.comment, ...(policy ? { brand: row.brand, productReference: row.productReference } : {}) })),
     extras, options: options.map((o) => ({ ...o, amount: blank(o.amount), unitPrice: blank(o.unitPrice) })),
     variants: variants.map((v) => ({ ...v, priceImpact: blank(v.priceImpact), delayImpact: blank(v.delayImpact) })),
     reservations: reservations.map((r) => ({ ...r, financialImpact: blank(r.financialImpact), delayImpact: blank(r.delayImpact) })), total: hasLines ? null : total === "" ? null : Number(total),
@@ -163,20 +171,23 @@ function LotOffer({ token, lot, editable, required, onChange }) {
   const setRow = (index, patch) => setRows(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   return (
     <section className="consult-card" data-portal-lot={lot.lotId}>
-      <h3>Lot {lot.lotId} · {lot.title} {submitted && <span className="consult-status s-AWARDED" data-portal-submitted>Offre remise · V{offer.version}{draftAfter ? ` (modifications non déposées : V${offer.version + 1} en brouillon)` : ""}</span>}</h3>
+      <h3>Lot {lot.lotId} · {lot.title} {submitted && <span className="consult-status s-AWARDED" data-portal-submitted>Offre remise · V{offer.version}{locked ? " · en attente du maître d’œuvre" : ""}{draftAfter ? ` (modifications non déposées : V${offer.version + 1} en brouillon)` : ""}</span>}</h3>
+      {locked && <div className="portal-waiting" data-portal-waiting role="status"><Lock size={18} /><div><b>Votre offre est remise : en attente de la réponse du maître d’œuvre</b><span>La version V{offer.version}{offer.submittedAt ? ` a été déposée le ${dateTime.format(new Date(offer.submittedAt))}` : " a été déposée"}. Elle n’est plus modifiable ; le maître d’œuvre peut vous demander des précisions dans l’onglet « Questions et échanges », et vous en serez prévenu par e-mail.</span></div></div>}
       {lot.notice && <div className="consult-banner" data-portal-notice>{lot.notice}</div>}
       <div className="portal-block" data-portal-section="offer">
         <h4><span className="portal-step">1</span> Votre offre</h4>
         <p className="consult-hint">Chiffrez ici le DPGF du DCE : le prix unitaire que vous renseignez est « le prix proposé par votre entreprise ». Une variante ne se saisit jamais ici (voir 3).</p>
       {rows.length > 0 ? (
-        <div className="portal-table-wrap"><table className="consult-table compact portal-lines"><thead><tr><th>Désignation</th><th>Unité</th><th>Qté DCE</th><th>Prix proposé par votre entreprise (HT)</th><th>Observations</th><th>Total (qté DCE)</th></tr></thead><tbody>
+        <div className="portal-table-wrap"><table className="consult-table compact portal-lines"><thead><tr><th>Désignation</th><th>Unité</th><th>Qté DCE</th><th>Prix proposé par votre entreprise (HT)</th>{askBrand && <th>Marque{policy.brand === "REQUIRED" ? " (demandée)" : ""}</th>}{askReference && <th>Référence produit{policy.product_reference === "REQUIRED" ? " (demandée)" : ""}</th>}<th>Observations</th><th>Total (qté DCE)</th></tr></thead><tbody>
           {rows.map((row, i) => [<tr key={row.key} data-portal-line={row.key}>
-            <td>{row.designation}{editable && !row.disputeOpen && row.quantity != null && <div><button type="button" className="link-button" data-portal-dispute-open onClick={() => setRow(i, { disputeOpen: true })}>Signaler une quantité différente</button></div>}</td>
+            <td>{row.designation}{editable && allowDispute && !row.disputeOpen && row.quantity != null && <div><button type="button" className="link-button" data-portal-dispute-open onClick={() => setRow(i, { disputeOpen: true })}>Signaler une quantité différente</button></div>}</td>
             <td data-label="Unité">{row.unit}</td><td data-label="Qté DCE">{row.quantity ?? "à confirmer"}</td>
             <td data-label="Prix proposé par votre entreprise"><input type="number" min="0" step=".01" disabled={!editable} data-portal-price value={row.unitPrice} onChange={(e) => setRow(i, { unitPrice: e.target.value })} /></td>
+            {askBrand && <td data-label="Marque"><input type="text" maxLength={120} disabled={!editable} data-portal-brand value={row.brand} placeholder="Marque" onChange={(e) => setRow(i, { brand: e.target.value })} /></td>}
+            {askReference && <td data-label="Référence produit"><input type="text" maxLength={120} disabled={!editable} data-portal-product-reference value={row.productReference} placeholder="Référence" onChange={(e) => setRow(i, { productReference: e.target.value })} /></td>}
             <td data-label="Observations"><input type="text" disabled={!editable} data-portal-comment value={row.comment} placeholder="Observation" onChange={(e) => setRow(i, { comment: e.target.value })} /></td>
             <td data-label="Total">{row.unitPrice !== "" && row.quantity ? money.format(row.unitPrice * row.quantity) : "—"}</td></tr>,
-            row.disputeOpen && <tr key={`${row.key}-dispute`} className="portal-dispute-row" data-portal-dispute={row.key}><td colSpan={6}>
+            row.disputeOpen && <tr key={`${row.key}-dispute`} className="portal-dispute-row" data-portal-dispute={row.key}><td colSpan={columns}>
               <div className="portal-dispute"><b>Quantité différente signalée</b>
                 <p className="consult-hint">Quantité du DCE : <b>{row.quantity} {row.unit}</b> — c'est elle qui sert au calcul de votre offre. Votre estimation est transmise au maître d'œuvre comme anomalie.</p>
                 <div className="portal-dispute-fields">
@@ -190,7 +201,7 @@ function LotOffer({ token, lot, editable, required, onChange }) {
       {disputedTotal !== null && <p className="consult-hint" data-portal-company-total>Information — montant selon vos quantités estimées : <b>{money.format(disputedTotal)}</b> (non retenu pour la comparaison).</p>}
       </div>
 
-      {(lot.options || []).length > 0 && <div className="portal-block" data-portal-section="options">
+      {allowOptions && (lot.options || []).length > 0 && <div className="portal-block" data-portal-section="options">
         <h4><span className="portal-step">2</span> Options demandées</h4>
         <p className="consult-hint">Le maître d'œuvre demande ces options : chiffrez-les séparément du prix de base.</p>
         {lot.options.map((option) => {
@@ -209,7 +220,7 @@ function LotOffer({ token, lot, editable, required, onChange }) {
         })}
       </div>}
 
-      <div className="portal-block" data-portal-section="variants">
+      <div className="portal-block" data-portal-section="variants" hidden={!allowVariants}>
         <h4><span className="portal-step">{(lot.options || []).length > 0 ? 3 : 2}</span> Variantes proposées</h4>
         <p className="consult-hint">Une variante est une alternative que vous proposez au DCE (autre matériau, autre mise en œuvre…). Elle reste hors de votre prix de base.</p>
         {variants.map((v, i) => <div className="portal-variant" key={v.id || i} data-portal-variant>

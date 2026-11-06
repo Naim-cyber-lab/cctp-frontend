@@ -22,6 +22,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useCatalog } from "../catalog/CatalogContext";
 import { OrganizationTasks } from "../components/OrganizationTasks";
+import { CctpConsistencyAudit } from "../components/CctpConsistencyAudit";
 import { useMyTasks } from "../hooks/useMyTasks";
 import "../draft-header.css";
 
@@ -283,6 +284,7 @@ export function DraftPage({
             </span>
           </div>
           {reorderError && <div className="folder-error" role="alert">{reorderError}</div>}
+          <CctpConsistencyAudit project={project} onOpenLot={(lotId) => onEdit?.(lotId)} />
           <div className="chapter-list">
             {selected.map((c, index) => {
               const section = project.sections[c.id];

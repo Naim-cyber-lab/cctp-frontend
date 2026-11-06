@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { listPricingRules, resetPricingRule, savePricingRule } from "../api/client";
 
 /** Bibliothèque agence › DPGF › Règles de chiffrage : ce que l'agence inclut dans le prix principal ou chiffre à part.
  *  Même architecture que la bibliothèque CCTP : règle SYSTÈME + surcharge AGENCE ; chaque projet peut ensuite déroger pour lui seul. */
 export function PricingRules() {
-  const [data, setData] = useState(null), [error, setError] = useState(""), [message, setMessage] = useState("");
+  const [data, setData] = useState(null), [error, setError] = useState(""), [message, setMessage] = useState(""), [closed, setClosed] = useState(null);
   const load = () => listPricingRules().then(setData).catch((reason) => setError(reason.message));
   useEffect(() => { load(); }, []);
   const change = async (rule, policy) => {
@@ -15,15 +15,21 @@ export function PricingRules() {
   };
   if (!data) return <section className="settings-section" data-pricing-rules><p className="panel-empty">{error || "Chargement…"}</p></section>;
   const byLot = data.rules.reduce((groups, rule) => ({ ...groups, [rule.lotLabel]: [...(groups[rule.lotLabel] || []), rule] }), {});
+  // Ouvrir / fermer par lot : tout est ouvert avec un ou deux lots, sinon seul le premier l'est au départ
+  const lots = Object.keys(byLot);
+  const isClosed = (lot) => (closed ? Boolean(closed[lot]) : lots.length > 2 && lot !== lots[0]);
+  const setAll = (value) => setClosed(Object.fromEntries(lots.map((lot) => [lot, value])));
+  const toggle = (lot) => setClosed({ ...Object.fromEntries(lots.map((name) => [name, isClosed(name)])), [lot]: !isClosed(lot) });
   return <section className="settings-section pricing-rules" data-pricing-rules>
     <h2>Règles de chiffrage</h2>
     <p>Ce que votre agence inclut dans le prix principal ou chiffre à part. Ces règles s’appliquent à chaque nouvelle génération de bordereau ; un projet peut y déroger sans les modifier.</p>
     {!data.canEdit && <p className="library-note" data-pricing-readonly>Lecture seule : seuls les administrateurs de la bibliothèque modifient ces règles.</p>}
     {error && <div className="err" role="alert">{error}</div>}
     {message && <div className="price-message" data-pricing-message>{message}</div>}
-    {Object.entries(byLot).map(([lot, rules]) => <div key={lot} className="pricing-lot" data-pricing-lot>
-      <h3>{lot}</h3>
-      <ul>{rules.map((rule) => <li key={rule.code} data-pricing-rule={rule.code}>
+    {lots.length > 1 && <p className="pricing-lot-actions"><button type="button" data-pricing-open-all onClick={() => setAll(false)}>Tout ouvrir</button> <button type="button" data-pricing-close-all onClick={() => setAll(true)}>Tout fermer</button></p>}
+    {Object.entries(byLot).map(([lot, rules]) => <div key={lot} className="pricing-lot" data-pricing-lot data-lot-open={isClosed(lot) ? "false" : "true"}>
+      <h3><button type="button" className="pricing-lot-toggle" data-pricing-lot-toggle aria-expanded={!isClosed(lot)} onClick={() => toggle(lot)}>{isClosed(lot) ? <ChevronRight size={16} /> : <ChevronDown size={16} />}<span>{lot}</span><small>{rules.length} règle{rules.length > 1 ? "s" : ""}</small></button></h3>
+      {!isClosed(lot) && <ul>{rules.map((rule) => <li key={rule.code} data-pricing-rule={rule.code}>
         <span className="who"><b>{rule.label}</b><small>{rule.hint}</small>{rule.version > 0 && <small className="rule-version" data-pricing-version>{rule.agency ? "Règle agence" : "Règle système"} v{rule.version}{rule.updatedBy ? ` · ${rule.updatedBy}` : ""}</small>}
           {rule.history.length > 1 && <details className="rule-history" data-pricing-history><summary>Historique ({rule.history.length} versions)</summary><ol>{rule.history.map((entry) => <li key={entry.version}>V{entry.version} · {entry.policyLabel}{entry.at ? ` · ${new Date(entry.at).toLocaleDateString("fr-FR")}` : ""}{entry.by ? ` · ${entry.by}` : ""}</li>)}</ol></details>}</span>
         <span className="actions">
@@ -32,7 +38,7 @@ export function PricingRules() {
           </select>
           {rule.agency && data.canEdit && <button type="button" data-pricing-reset title="Revenir à la règle système" onClick={() => change(rule, "RESET")}><RotateCcw size={13} /> Règle système</button>}
         </span>
-      </li>)}</ul>
+      </li>)}</ul>}
     </div>)}
   </section>;
 }

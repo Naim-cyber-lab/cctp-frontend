@@ -6,15 +6,7 @@ export const lotLabel = (id) => (id ? chapters.find((item) => item.id === id)?.t
 export const WORKFLOW = { DRAFT: "Brouillon", PENDING_VALIDATION: "En attente de validation", VALIDATED: "Validée", ARCHIVED: "Archivée" };
 export const clauseMeta = (clause) => [lotLabel(clause.lotId), clause.workFamily, clause.sectionLabel || SECTION_TYPES[clause.sectionType]].filter(Boolean).join(" · ");
 
-/** Type de section déduit du titre le plus proche au-dessus du curseur (« 1.1 GÉNÉRALITÉS », « Mise en œuvre »…). Vide si rien de reconnaissable. */
-export function sectionFromHeading(text) {
-  const plain = String(text || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  if (/generalit|objet|consistance|etendue/.test(plain)) return "generalites";
-  if (/materiau|fourniture|produit|composant/.test(plain)) return "materiaux";
-  if (/mise en oeuvre|execution|pose|realisation|preparation/.test(plain)) return "execution";
-  if (/controle|essai|reception|verification/.test(plain)) return "controles";
-  return "";
-}
+export { sectionFromHeading } from "./sectionType";
 
 const fold = (value) => String(value ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 

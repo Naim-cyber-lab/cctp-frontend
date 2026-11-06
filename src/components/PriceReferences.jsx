@@ -8,7 +8,7 @@ const date = (value) => new Date(value).toLocaleDateString("fr-FR", { month: "sh
 
 /** Bibliothèque agence › DPGF › Références de prix : UNE mémoire économique (saisies, devis importés et validés, estimations MOE, offres).
  *  Un devis importé n'est jamais enregistré tel quel : les lignes détectées sont montrées, l'utilisateur confirme celles qui sont ambiguës. */
-export function PriceReferences({ canWrite = true }) {
+export function PriceReferences({ onOpenObservations, canWrite = true }) {
   const [filters, setFilters] = useState({ q: "", lot: "", unit: "", source: "", project: "", dateFrom: "", dateTo: "" });
   const [archived, setArchived] = useState(false);
   const [data, setData] = useState({ total: 0, matching: 0, items: [], facets: { lots: [], units: [], sources: [], projects: [] }, sources: {} });
@@ -54,10 +54,10 @@ export function PriceReferences({ canWrite = true }) {
         : <div className="price-table-wrap"><table className="price-table" data-price-table>
           <thead><tr><th>Désignation</th><th>Unité</th><th>PU</th><th>Projet source</th><th>Date</th><th>Source</th><th aria-label="Actions" /></tr></thead>
           <tbody>{data.items.map((item) => <tr key={item.id} data-price-row data-price-source={item.sourceType}>
-            <td>{item.designation}</td><td>{item.unit || "—"}</td><td>{money.format(item.unitPrice)}</td>
+            <td>{item.designation}{item.granularity === "MACRO" && <span className="origin-badge o-MACRO" data-price-macro title="Référence économique macro : utilisée pour l’estimation de faisabilité, pas pour les ouvrages du DPGF"> Macro (faisabilité)</span>}</td><td>{item.unit || "—"}</td><td>{money.format(item.unitPrice)}</td>
             <td>{item.sourceProject || (item.sourceDocument || "").replace(/\.[^.]+$/, "") || "—"}</td><td>{date(item.sourceDate)}</td>
             <td><span className={`origin-badge o-${item.sourceType}`}>{item.sourceLabel}</span>{item.sourceDocument && <small className="price-doc"> {item.sourceDocument}</small>}</td>
-            <td className="standard-actions">{canWrite && item.editable && <button type="button" data-price-archive title={archived ? "Restaurer" : "Archiver"} onClick={() => archive(item)}>{archived ? <RotateCcw size={13} /> : <Archive size={13} />}</button>}</td>
+            <td className="standard-actions">{canWrite && item.editable && <button type="button" data-price-archive title={archived ? "Restaurer" : "Désactiver cette référence"} onClick={() => archive(item)}>{archived ? <RotateCcw size={13} /> : <Archive size={13} />}</button>}</td>
           </tr>)}</tbody>
         </table></div>}
       {data.matching > data.items.length && <small>{data.items.length} références affichées sur {data.matching} : affinez la recherche.</small>}
@@ -66,12 +66,12 @@ export function PriceReferences({ canWrite = true }) {
       <summary>Anciens imports ({legacy.files.length})</summary>
       <ul data-price-library-files>{legacy.files.map((entry) => <li key={entry.name} data-price-library-file-row><span><b>{entry.name}</b> <small>{entry.count} prix</small></span><button type="button" onClick={() => deletePriceLibraryFile(entry.name).then(() => { getPriceLibrary().then(setLegacy); load(); })}>Retirer</button></li>)}</ul>
     </details>}
-    {adding && <AddReference onClose={() => setAdding(false)} onSaved={() => { setAdding(false); setMessage("Référence enregistrée."); load(); }} />}
+    {adding && <AddReference onOpenObservations={onOpenObservations} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); setMessage("Référence enregistrée."); load(); }} />}
     {preview && <ImportPreview preview={preview} onClose={() => setPreview(null)} onImported={(count, name) => { setPreview(null); setMessage(`${count} référence${count > 1 ? "s" : ""} importée${count > 1 ? "s" : ""} depuis ${name}.`); load(); }} />}
   </section>;
 }
 
-function AddReference({ onClose, onSaved }) {
+function AddReference({ onOpenObservations, onClose, onSaved }) {
   const [form, setForm] = useState({ designation: "", unit: "ml", unitPrice: "", sourceType: "MANUAL", lotId: "" });
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const save = async (event) => {
@@ -82,6 +82,7 @@ function AddReference({ onClose, onSaved }) {
   return <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <form className="estimate-documents price-modal" data-price-add-modal onSubmit={save}>
       <header><h2>Ajouter une référence</h2><button type="button" aria-label="Fermer" onClick={onClose}><X size={18} /></button></header>
+      {onOpenObservations && <p className="muted" data-price-add-choice>Une référence est un prix que votre agence utilise. Pour un prix observé sur un projet passé, <button type="button" className="link-button" data-price-add-observation onClick={() => { onClose(); onOpenObservations(); }}>ajoutez une observation</button>.</p>}
       {error && <div className="err" role="alert">{error}</div>}
       <label>Ouvrage<input required minLength={3} data-price-add-designation value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} placeholder="Ex. Traitement joint de structure" /></label>
       <div className="price-modal-row">

@@ -1,9 +1,10 @@
 import { HelpOnboarding } from "./components/HelpOnboarding";
-import { apiFetch } from "./api/client";
+import { apiFetch, getPlanningAvailability } from "./api/client";
 import { ArrowLeft, BookOpenCheck, FileText } from "lucide-react";
 import { MyTasksProvider } from "./hooks/useMyTasks";
 import { listenNotificationClicks, syncPush } from "./utils/push";
 import { prefetchPreview } from "./utils/prefetch";
+import { markOpened } from "./utils/recentProjects";
 import { PageErrorBoundary } from './components/PageErrorBoundary';
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Topbar } from "./components/Topbar";
@@ -18,12 +19,14 @@ import { WorkspaceProvider, useWorkspaces } from "./hooks/useWorkspaces";
 import { TasksPanel } from "./components/TasksPanel";
 import { DiscussionPanel } from "./components/DiscussionPanel";
 import { PersonalDocumentsPanel } from "./components/PersonalDocumentsPanel";
+import { NewProjectEntry } from "./components/NewProjectEntry";
 import { useAuth } from "./auth/AuthContext";
 import { AiUnavailableModal } from "./components/AiUnavailableModal";
 import { renumberSection } from "./utils/chapterNumbering";
 import { useCctpPresence } from "./hooks/useCctpPresence";
 import { CctpAccessPanel } from "./components/CctpAccessPanel";
 import { ProjectNav } from "./components/ProjectNav";
+import { SiteAssistant } from "./components/SiteAssistant";
 
 const lazyNamed = (loader, name) =>
   lazy(() => loader().then((module) => ({ default: module[name] })));
@@ -49,11 +52,13 @@ const CompanyPortalPage = lazyNamed(() => import("./pages/CompanyPortalPage"), "
 const QuotesPage = lazyNamed(() => import("./pages/QuotesPage"), "QuotesPage");
 const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
 const TasksPage = lazyNamed(() => import("./pages/TasksPage"), "TasksPage");
+import { InlinePersonalizationHost } from "./components/InlinePersonalization";
 const AgencyLibraryPage = lazyNamed(() => import("./pages/AgencyLibraryPage"), "AgencyLibraryPage");
 const VerifyAccountPage = lazyNamed(() => import("./pages/VerifyAccountPage"), "VerifyAccountPage");
 const ProjectOverviewPage = lazyNamed(() => import("./pages/ProjectOverviewPage"), "ProjectOverviewPage");
 const ProjectDocumentsPage = lazyNamed(() => import("./pages/ProjectDocumentsPage"), "ProjectDocumentsPage");
 const FeasibilityPage = lazyNamed(() => import("./pages/FeasibilityPage"), "FeasibilityPage");
+const PlanningPage = lazyNamed(() => import("./pages/PlanningPage"), "PlanningPage");
 
 function RouteLoader({ label = "Chargement…" }) {
   return (
@@ -207,8 +212,14 @@ function AuthenticatedApp({ user, onLogout }) {
     const timer = setInterval(() => { if (document.visibilityState !== "hidden") refreshQuiet(); }, 30000);
     return () => { unsubscribe?.(); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); clearInterval(timer); };
   }, [realtime.subscribe, refreshQuiet]);
-  const [view, setView] = useState("projects");
-  const [workspaceTab, setWorkspaceTab] = useState("projects");
+  // Lien direct vers une liste transversale de l'agence (?vue=cctp | quotes | consult) : ces listes ne sont plus dans la barre du haut, on y accède depuis les projets
+  const directView = (() => { try { const value = new URLSearchParams(window.location.search).get("vue"); return ["cctp", "quotes", "consult"].includes(value) ? value : "projects"; } catch { return "projects"; } })();
+  const [view, setView] = useState(directView === "cctp" ? "projects" : directView);
+  const [workspaceTab, setWorkspaceTab] = useState(directView);
+  // Planning V1 (plâtrerie) : onglet visible seulement si le module est activé pour ce compte (feature flag serveur) ; en cas d'erreur il reste masqué, jamais bloquant
+  const [planningEnabled, setPlanningEnabled] = useState(false);
+  const [docsStart, setDocsStart] = useState(null); // « Nouveau projet › À partir de documents » : documents d'abord, puis module choisi
+  useEffect(() => { if (!user?.isVerified) { setPlanningEnabled(false); return undefined; } let alive = true; getPlanningAvailability().then((data) => { if (alive) setPlanningEnabled(!!data?.enabled); }).catch(() => { if (alive) setPlanningEnabled(false); }); return () => { alive = false; }; }, [user?.id, user?.isVerified]);
   const [projectScope, setProjectScope] = useState(false); // vrai tant que l'on navigue DANS un projet (onglets du projet) ; faux dans les vues globales
   const [consultProjectId, setConsultProjectId] = useState("");
   const [consultTarget, setConsultTarget] = useState(null);
@@ -241,11 +252,16 @@ function AuthenticatedApp({ user, onLogout }) {
   const selectionProject = projects.find((p) => p.id === selectionProjectId);
   const [loadError, setLoadError] = useState("");
   const openProject = (id) => {
+    markOpened(id);   // les derniers projets consultés remontent en haut de la liste
     setLoadError("");
     setActiveProjectId(id);
     setProjectScope(true);
     setWorkspaceTab("projects");
-    setView("project-overview");
+    // un projet commencé sans CCTP rouvre le dernier module utilisé ; les autres projets s'ouvrent sur la vue d'ensemble comme avant
+    let last = null;
+    try { last = localStorage.getItem(`calepin.lastModule.${id}`); } catch { /* stockage indisponible */ }
+    const withoutCctp = (projects.find((item) => item.id === id)?.selected || []).length === 0;
+    setView(withoutCctp && last === "feasibility" ? "project-feasibility" : withoutCctp && last === "planning" && planningEnabled ? "project-planning" : "project-overview");
     loadProject(id).catch((reason) => setLoadError(reason?.message || "Impossible de charger ce CCTP."));
   };
   const importAndOpen = async (file, name) => {
@@ -280,9 +296,11 @@ function AuthenticatedApp({ user, onLogout }) {
     }
   };
   const goHome = () => {
+    setLibraryBack(null);
     setWorkspaceTab("projects");
     setActiveProjectId(null);
     setSelectionProjectId(null);
+    setCctpSection("documents"); // le logo ramène aux projets, même depuis la bibliothèque agence
     setView("projects");
   };
   const changeWorkspaceTab = (tab) => {
@@ -292,9 +310,19 @@ function AuthenticatedApp({ user, onLogout }) {
     setSelectionProjectId(null);
     setView(tab === "projects" || tab === "cctp" ? "projects" : tab);
   };
+  const [libraryStart, setLibraryStart] = useState(null); // section de la bibliothèque à ouvrir directement (ex. « clauses » depuis une clause insérée)
+  const [libraryBack, setLibraryBack] = useState(null); // projet d'où la bibliothèque a été ouverte (« Retour au projet ») ; null = depuis la Home (« Retour aux projets »)
   const [libraryReturn, setLibraryReturn] = useState(null); // chapitre d'où la bibliothèque a été ouverte : « Utiliser dans le CCTP courant » y retourne
   const [pendingClause, setPendingClause] = useState(null);
-  const openAgencyLibrary = (context = null) => { setLibraryReturn(context && context.projectId && context.chapterId ? context : null); setProjectScope(false); setActiveProjectId(null); setSelectionProjectId(null); setWorkspaceTab("cctp"); setCctpSection("library"); setView("projects"); };
+  const openAgencyLibraryRef = useRef(null);
+  const [libraryFocus, setLibraryFocus] = useState("");
+  useEffect(() => {
+    const handler = (event) => { const { projectId, target } = event.detail || {}; openAgencyLibraryRef.current?.(projectId ? { projectId } : null, target?.section || null, target?.focus || null); };
+    window.addEventListener("calepin:open-library", handler);
+    return () => window.removeEventListener("calepin:open-library", handler);
+  }, []);
+  const openAgencyLibrary = (context = null, section = null, focus = null) => { setLibraryFocus(focus || ""); setLibraryBack((context && context.projectId) || (projectScope ? activeProjectId : null) || null); setLibraryStart(section); setLibraryReturn(context && context.projectId && context.chapterId ? context : null); setProjectScope(false); setActiveProjectId(null); setSelectionProjectId(null); setWorkspaceTab("cctp"); setCctpSection("library"); setView("projects"); };
+  openAgencyLibraryRef.current = openAgencyLibrary;
   const useClauseInCctp = async (clause) => {
     const context = libraryReturn;
     if (!context) return;
@@ -305,6 +333,7 @@ function AuthenticatedApp({ user, onLogout }) {
   };
   const navigateProject = (section) => {
     if (!project) return;
+    if (["feasibility", "planning", "estimate", "cctp"].includes(section)) { try { localStorage.setItem(`calepin.lastModule.${project.id}`, section); } catch { /* stockage indisponible */ } }
     setProjectScope(true);
     if (section === "overview") { setWorkspaceTab("projects"); setView("project-overview"); return; }
     if (section === "cctp") { setWorkspaceTab("cctp"); setView("draft"); return; }
@@ -312,6 +341,7 @@ function AuthenticatedApp({ user, onLogout }) {
     if (section === "consultation") { setConsultProjectId(project.id); setWorkspaceTab("consult"); setView("consult"); return; }
     if (section === "documents") { setWorkspaceTab("projects"); setView("project-documents"); }
     if (section === "feasibility") { setWorkspaceTab("projects"); setView("project-feasibility"); }
+    if (section === "planning") { setWorkspaceTab("projects"); setView("project-planning"); }
   };
   const openSettings = (sectionId = "account") => {
     setSettingsSection({ id: sectionId === "agency" ? "agency" : "account", nonce: Date.now() });
@@ -322,6 +352,24 @@ function AuthenticatedApp({ user, onLogout }) {
     setTasksScope(scope);
     setTasksFocus(focusId ? { id: focusId, nonce: Date.now() } : null);
     changeWorkspaceTab("tasks");
+  };
+  // l'assistant ouvre une consultation précise (par son nom) : même mécanisme que le lien d'une notification de consultation
+  const openConsultationFromAssistant = (projectId, consultationId) => {
+    if (!projectId || !consultationId) return;
+    setConsultProjectId(projectId);
+    setConsultTarget({ consultationId, tab: "tracking", nonce: Date.now() });
+    setWorkspaceTab("consult");
+    if (!project || project.id !== projectId) setActiveProjectId(null);
+    setView("consult");
+  };
+  const assistantNavigate = (destination, projectId = null) => {
+    if (destination === "projects") { goHome(); return; }
+    if (destination === "tasks") { openTasksPage("mine"); return; }
+    if (destination === "discussion") { setTasksOpen(false); setDiscussionOpen(true); return; }
+    if (destination === "library") { openAgencyLibrary(); return; }
+    if (destination === "profile") { openSettings("account"); return; }
+    if (projectId && projectId !== project?.id) { openProject(projectId); return; }
+    navigateProject(destination);
   };
   // Clic sur une mention (ou une notification de discussion) : le panneau Discussion s'ouvre sur la conversation concernée, sans quitter la page en cours.
   openChatRef.current = (conversationId) => {
@@ -441,9 +489,10 @@ function AuthenticatedApp({ user, onLogout }) {
     await updateProject(project.id, { selected, sections });
   };
   if (loading)
-    return <div className="api-state">Chargement de vos CCTP…</div>;
+    return <div className="api-state">Chargement de vos projets…</div>;
   return (
     <WorkspaceProvider user={user} realtime={realtime}>
+    <LibraryRouteSync open={view === "projects" && cctpSection === "library"} onOpen={() => openAgencyLibrary()} />
     <MyTasksProvider user={user} realtime={realtime}>
     <div className="app">
       <Topbar
@@ -461,10 +510,11 @@ function AuthenticatedApp({ user, onLogout }) {
         onOpenDiscussion={() => { setTasksOpen(false); setDiscussionOpen((open) => !open); }}
         onOpenSettings={openSettings}
         projectScope={projectScope}
-        onOpenLibrary={() => openAgencyLibrary()}
+        onOpenLibrary={() => openAgencyLibrary(project ? { projectId: project.id, chapterId: view === "assistant" ? activeChapterId : null } : null)}
         notifications={{ items: notifications.items, unread: notifications.unread, onOpen: openNotification, onMarkAllRead: () => notifications.markRead(null) }}
       />
-      {projectReady && (["project-overview", "project-feasibility", "project-documents", "draft", "assistant", "preview"].includes(view) || (projectScope && ["quotes", "consult"].includes(view))) && <ProjectNav project={project} onOpenLibrary={() => openAgencyLibrary({ projectId: project.id, chapterId: view === "assistant" ? activeChapterId : null })} active={view === "project-overview" ? "overview" : view === "project-feasibility" ? "feasibility" : view === "project-documents" ? "documents" : view === "quotes" ? "estimate" : view === "consult" ? "consultation" : "cctp"} onNavigate={navigateProject} onBack={() => changeWorkspaceTab("projects")}/>} 
+      <InlinePersonalizationHost projectId={project?.id || activeProjectId} />
+      {projectReady && (["project-overview", "project-feasibility", "project-planning", "project-documents", "draft", "assistant", "preview"].includes(view) || (projectScope && ["quotes", "consult"].includes(view))) && <ProjectNav project={project} onOpenLibrary={() => openAgencyLibrary({ projectId: project.id, chapterId: view === "assistant" ? activeChapterId : null })} planningEnabled={planningEnabled} active={view === "project-overview" ? "overview" : view === "project-feasibility" ? "feasibility" : view === "project-planning" ? "planning" : view === "project-documents" ? "documents" : view === "quotes" ? "estimate" : view === "consult" ? "consultation" : "cctp"} onNavigate={navigateProject} onBack={() => changeWorkspaceTab("projects")}/>} 
       <TasksPanel
         open={tasksOpen}
         onClose={() => setTasksOpen(false)}
@@ -494,17 +544,17 @@ function AuthenticatedApp({ user, onLogout }) {
         <div className="cctp-home-bar" data-cctp-subnav>
           {workspaceTab === "cctp" && cctpSection !== "library" && <HelpOnboarding topic="cctp" />}
           {cctpSection === "library"
-            ? <button type="button" className="cctp-library-link" data-cctp-section="documents" onClick={() => setCctpSection("documents")}><ArrowLeft size={15} /> CCTP</button>
-            : workspaceTab === "cctp" && <button type="button" className="cctp-library-link" data-cctp-section="library" onClick={() => setCctpSection("library")}><BookOpenCheck size={15} /> Bibliothèque agence{realtime.libraryPending > 0 && <em className="tab-badge" data-library-tab-count>{realtime.libraryPending}</em>}</button>}
+            ? null /* depuis la bibliothèque, « Retour aux projets » (ou au projet) ramène à l'écran d'origine */
+            : <div className="home-library-entry" data-home-library-entry style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}><button type="button" className="cctp-library-link" data-home-library data-cctp-section="library" onClick={() => openAgencyLibrary()}><BookOpenCheck size={15} /> Bibliothèque agence{realtime.libraryPending > 0 && <em className="tab-badge" data-library-tab-count>{realtime.libraryPending}</em>}</button></div>}
         </div>
-        {cctpSection === "library" ? <AgencyLibraryPage user={user} onOpenSettings={openSettings} insertContext={libraryReturn} onUseInCctp={useClauseInCctp} /> : <><PersonalDocumentsPanel onImported={refresh} /><ProjectsPage
+        {cctpSection === "library" ? <AgencyLibraryPage key={`${libraryStart || "default"}:${libraryFocus}`} initialFocus={libraryFocus} user={user} onOpenSettings={openSettings} insertContext={libraryReturn} onUseInCctp={useClauseInCctp} initialSection={libraryStart} backLabel={libraryBack ? "Retour au projet" : "Retour aux projets"} onBack={() => { const target = libraryBack; setLibraryBack(null); if (target) { setCctpSection("documents"); openProject(target); } else goHome(); }} /> : <><PersonalDocumentsPanel onImported={refresh} /><ProjectsPage
           projects={projects}
           getProgress={getProgress}
           portfolio={workspaceTab === "projects"}
           onNew={() => {
             setActiveProjectId(null);
             setSelectionProjectId(null);
-            setView("select");
+            setView("new-entry");
           }}
           onOpen={openProject}
           onDelete={deleteProject}
@@ -518,9 +568,10 @@ function AuthenticatedApp({ user, onLogout }) {
           onRefresh={refreshQuiet}
         /></>}
       </div>)}
-      {view === "project-overview" && projectReady && <ProjectOverviewPage project={project} progress={getProgress(project)} onNavigate={navigateProject}/>} 
-      {view === "project-documents" && projectReady && <ProjectDocumentsPage project={project}/>}
+      {view === "project-overview" && projectReady && <ProjectOverviewPage project={project} progress={getProgress(project)} onNavigate={navigateProject} planningEnabled={planningEnabled}/>} 
+        {view === "project-documents" && projectReady && <ProjectDocumentsPage project={project} onNavigate={navigateProject} initialFiles={docsStart?.projectId === project.id ? docsStart.files : null} startWith={docsStart && docsStart.projectId === project.id ? { label: { feasibility: "la Faisabilité", dpgf: "le DPGF", planning: "le Planning" }[docsStart.entry], onContinue: () => { const entry = docsStart.entry; setDocsStart(null); navigateProject(entry === "dpgf" ? "estimate" : entry); } } : null}/>} 
       {view === "project-feasibility" && projectReady && <FeasibilityPage project={project} onNavigate={navigateProject}/>} 
+      {view === "project-planning" && projectReady && planningEnabled && <PlanningPage key={project.id} project={project} onNavigate={navigateProject}/>}
       {view === "consult" && <ConsultationsPage key={`${consultProjectId}-${consultTarget?.nonce || 0}`} initialProjectId={consultProjectId} target={consultTarget} projects={projects.filter((item) => !item.archived)} />}
       {view === "quotes" && (
         <QuotesPage
@@ -558,6 +609,24 @@ function AuthenticatedApp({ user, onLogout }) {
       )}
       {view === "profile" && <ProfilePage user={user} initialSection={settingsSection.id} sectionNonce={settingsSection.nonce} />}
       {view === "tasks" && <TasksPage key={tasksFocus?.nonce || 0} user={user} projects={projects} initialScope={tasksScope} focusTaskId={tasksFocus?.id || null} />}
+      {view === "new-entry" && (
+        <NewProjectEntry
+          planningEnabled={planningEnabled}
+          onImport={importAndOpen}
+          onExample={async () => { const seeded = await apiFetch("/demo-seed/DEMO_MOY_AISNE_CURRENT_STACK_V2", { method: "POST", body: "{}" }); await refresh(); openProject(seeded.projectId); }}
+          onCancel={goHome}
+          onChoose={async (entry, name, mode = "EMPTY", files = []) => {
+            if (entry === "cctp") { setView("select"); return; }
+            const created = await createProject(name, [], { initialModule: entry, creationMode: mode }); // initial_module et project_creation_mode : deux propriétés distinctes, jamais un type de projet
+            if (entry === "feasibility") await apiFetch(`/cctps/${created.id}/feasibility`, { method: "POST", body: JSON.stringify({}) });
+            try { localStorage.setItem(`calepin.lastModule.${created.id}`, entry); } catch { /* stockage indisponible */ }
+            openProject(created.id);
+            if (mode === "FROM_DOCUMENTS") { setDocsStart({ projectId: created.id, entry, files }); setView("project-documents"); return; } // les documents d'abord (référentiel unique), puis le module choisi
+            setView(entry === "feasibility" ? "project-feasibility" : entry === "planning" ? "project-planning" : "quotes");
+            if (entry === "dpgf") { setQuotesOpen({ cctpId: created.id, nonce: Date.now() }); setWorkspaceTab("quotes"); }
+          }}
+        />
+      )}
       {view === "select" && (
         <SelectionPage
           initial={selectionProject}
@@ -588,7 +657,7 @@ function AuthenticatedApp({ user, onLogout }) {
           onNew={() => {
             setActiveProjectId(null);
             setSelectionProjectId(null);
-            setView("select");
+            setView("new-entry");
           }}
           onOpen={openProject}
           onPreview={() => setView("preview")}
@@ -615,7 +684,7 @@ function AuthenticatedApp({ user, onLogout }) {
           userEmail={user?.email}
           pendingClause={pendingClause}
           onClauseConsumed={() => setPendingClause(null)}
-          onOpenLibrary={() => openAgencyLibrary({ projectId: project.id, chapterId: activeChapterId })}
+          onOpenLibrary={(section) => openAgencyLibrary({ projectId: project.id, chapterId: activeChapterId }, typeof section === "string" ? section : null)}
           initialFocus={answerFocus}
           projectId={project.id}
           projectName={project.name}
@@ -642,8 +711,27 @@ function AuthenticatedApp({ user, onLogout }) {
           onClose={() => setUnavailableChapter(null)}
         />
       )}
+      <SiteAssistant project={projectReady ? project : null} view={view === "projects" && cctpSection === "library" ? "library" : view} chapterId={view === "assistant" ? activeChapterId : null} onRemoveLot={projectReady ? removeChapter : null} onOpenLot={projectReady ? (lotId) => editChapter(lotId) : null} onOpenConsultation={openConsultationFromAssistant} onNavigate={assistantNavigate} onRefresh={refreshQuiet} />
     </div>
     </MyTasksProvider>
     </WorkspaceProvider>
   );
+}
+
+
+/** Route globale de la Bibliothèque agence : `#/agencies/:agencyId/library` (jamais rattachée à un projet). L'identifiant est toujours celui de l'agence ACTIVE : changer d'agence change la bibliothèque affichée. */
+function LibraryRouteSync({ open, onOpen }) {
+  const { active, loading } = useWorkspaces();
+  const agencyId = active?.id, opening = useRef(false);
+  useEffect(() => { // lien direct / rechargement : /agencies/:id/library ouvre la bibliothèque de l'agence active
+    if (loading || !agencyId) return;
+    if (!open && /^#\/agencies\/[^/]+\/library/.test(window.location.hash)) { opening.current = true; onOpen(); }
+  }, [loading, agencyId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!agencyId) return;
+    const target = `#/agencies/${agencyId}/library`;
+    if (open) { opening.current = false; if (window.location.hash !== target) window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}${target}`); return; }
+    if (!opening.current && window.location.hash.startsWith("#/agencies/")) window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+  }, [open, agencyId]);
+  return null;
 }

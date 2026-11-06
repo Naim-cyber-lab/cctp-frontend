@@ -50,20 +50,35 @@ export function AgencyClauses({ canPropose, canPublish, userEmail, query = "", i
         </span>
       </li>)}
     </ul>}
-    {editor && <ClauseEditor mode={editor.mode} clause={editor.clause} canPublish={canPublish} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); load(); }} />}
+    {editor && <ClauseEditor existing={items} mode={editor.mode} clause={editor.clause} canPublish={canPublish} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); load(); }} />}
     {view && <ClauseView clause={view} canPublish={canPublish} onClose={() => setView(null)} onChanged={() => { load(); getTeamClause(view.id).then(setView).catch(() => setView(null)); }} />}
   </section>;
 }
 
-export function ClauseEditor({ mode = "create", clause = null, canPublish, initial = null, onClose, onSaved }) {
+const foldWords = (text) => String(text || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+/** LIBRARY-CCTP-CLAUSE-UX-01 : une clause au titre très proche existe déjà (signalée, jamais bloquante). */
+const similarClause = (label, list, selfId) => {
+  const words = new Set(foldWords(label));
+  if (words.size < 2) return null;
+  return (list || []).find((item) => item.id !== selfId && item.workflowStatus !== "ARCHIVED" && (() => { const other = new Set(foldWords(item.label)); const common = [...words].filter((w) => other.has(w)).length; return common >= 2 && common / Math.max(words.size, other.size) >= 0.6; })()) || null;
+};
+
+export function ClauseEditor({ existing = [], mode = "create", clause = null, canPublish, initial = null, onClose, onSaved }) {
   const base = clause || initial || {};
   const [form, setForm] = useState({ label: base.label || "", text: base.text || "", lotId: base.lotId || "", workFamily: base.workFamily || "", sectionType: base.sectionType || "", tags: (base.tags || []).join(", "), triggerQuestion: base.trigger?.questionId || "", triggerValues: (base.trigger?.values || []).join(", ") });
   const [questions, setQuestions] = useState([]);
   useEffect(() => { getQuestionnaireCatalog().then((catalog) => setQuestions(catalog.questions || [])).catch(() => {}); }, []);
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const body = { label: form.label.trim(), text: form.text.trim(), lotId: form.lotId, workFamily: form.workFamily.trim(), sectionType: form.sectionType, tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean), trigger: form.triggerQuestion ? { questionId: form.triggerQuestion, values: form.triggerValues.split(",").map((value) => value.trim()).filter(Boolean) } : {} };
-  const save = async (asDraft = false) => {
-    if (form.text.trim().length < 3) { setError("Saisissez le texte de la clause."); return; }
+  const [fieldErrors, setFieldErrors] = useState({}), [duplicateOk, setDuplicateOk] = useState(false);
+  const duplicate = mode === "create" ? similarClause(form.label, existing, base.id) : null;
+  const save = async (asDraft = false, { skipCheck = false } = {}) => {
+    const problems = {};
+    if (!form.label.trim()) problems.label = "Le titre est obligatoire : il identifie la clause dans la Bibliothèque.";
+    if (form.text.trim().length < 3) problems.text = "Saisissez le texte de la clause.";
+    setFieldErrors(problems);
+    if (Object.keys(problems).length) { setError(""); return; }
+    if (duplicate && !duplicateOk && !skipCheck) return;
     setBusy(true); setError("");
     try {
       if (mode === "version") await proposeClauseVersion(clause.id, body);
@@ -76,26 +91,32 @@ export function ClauseEditor({ mode = "create", clause = null, canPublish, initi
     <form className="estimate-documents price-modal clause-modal" role="dialog" aria-modal="true" aria-label={title} data-clause-editor onSubmit={(event) => { event.preventDefault(); save(false); }}>
       <header><h2>{title}</h2><button type="button" aria-label="Fermer" onClick={onClose}><X size={18} /></button></header>
       {error && <div className="err" role="alert" data-clause-editor-error>{error}</div>}
-      <label>Titre<input data-clause-title maxLength={160} value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} placeholder="Ex. Sujétions générales de mise en œuvre" /></label>
+      <h3 className="clause-section-title" data-clause-section="general">Informations générales</h3>
+      <label>Titre<input data-clause-title required maxLength={160} value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} placeholder="Ex. Sujétions générales de mise en œuvre" /></label>
+      {fieldErrors.label && <small className="field-error" role="alert" data-clause-field-error="label">{fieldErrors.label}</small>}
+      {duplicate && !duplicateOk && <div className="clause-duplicate" role="status" data-clause-duplicate>Une clause similaire existe déjà : <b>« {duplicate.label} »</b>. <button type="button" className="link-button" data-clause-duplicate-continue onClick={() => setDuplicateOk(true)}>Continuer quand même</button></div>}
       <div className="price-modal-row">
         <label>Lot<select data-clause-lot-select value={form.lotId} onChange={(event) => setForm({ ...form, lotId: event.target.value })}><option value="">Tous les lots</option>{chapters.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-        <label>Contexte (section)<select data-clause-section-select value={form.sectionType} onChange={(event) => setForm({ ...form, sectionType: event.target.value })}><option value="">Non précisé</option>{Object.entries(SECTION_TYPES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <label>Section du CCTP<select data-clause-section-select value={form.sectionType} onChange={(event) => setForm({ ...form, sectionType: event.target.value })}><option value="">Non précisé</option>{Object.entries(SECTION_TYPES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
         <label>Famille d’ouvrage<input data-clause-family maxLength={80} value={form.workFamily} onChange={(event) => setForm({ ...form, workFamily: event.target.value })} placeholder="Ex. Cloisons" /></label>
       </div>
       <label>Étiquettes <small>séparées par des virgules</small><input data-clause-tags value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} placeholder="Ex. site occupé, protection" /></label>
-      <fieldset className="clause-trigger" data-clause-trigger><legend>Recommandation automatique <small>(facultatif)</small></legend>
+      <fieldset className="clause-trigger" data-clause-trigger data-clause-section="trigger"><legend>Recommandation automatique <span className="clause-badge" data-clause-optional>Facultatif</span></legend>
         <p className="consult-hint">Proposer cette clause dans l’éditeur quand une réponse du questionnaire correspond. Elle n’est jamais insérée toute seule.</p>
         <div className="price-modal-row" style={{ gridTemplateColumns: "2fr 1fr" }}>
           <label>Quand la question…<select data-clause-trigger-question value={form.triggerQuestion} onChange={(event) => setForm({ ...form, triggerQuestion: event.target.value })}><option value="">Aucune</option>{questions.map((question) => <option key={question.id} value={question.id}>{question.label.length > 90 ? `${question.label.slice(0, 90)}…` : question.label}</option>)}</select></label>
           <label>…a pour réponse<input data-clause-trigger-values disabled={!form.triggerQuestion} value={form.triggerValues} onChange={(event) => setForm({ ...form, triggerValues: event.target.value })} placeholder="Ex. oui, partiellement" /></label>
         </div>
       </fieldset>
-      <label>Texte<textarea data-clause-text rows={7} required value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
+      <h3 className="clause-section-title" data-clause-section="text">Texte de la clause</h3>
+      <p className="consult-hint">Rédigez la clause qui pourra être réutilisée dans les CCTP. Le moteur de rédaction peut adapter son intégration dans le CCTP final.</p>
+      {fieldErrors.text && <small className="field-error" role="alert" data-clause-field-error="text">{fieldErrors.text}</small>}
+      <label><span className="sr-only">Texte de la clause</span><textarea data-clause-text rows={9} required placeholder="Saisissez ici la clause…" value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
       {mode === "create" && !canPublish && <p className="consult-hint">Votre proposition sera soumise à validation par un administrateur de la bibliothèque.</p>}
       <p className="price-modal-actions">
         <button type="button" className="secondary" onClick={onClose}>Annuler</button>
         {mode === "create" && <button type="button" className="secondary" data-clause-save-draft disabled={busy} onClick={() => save(true)}>Enregistrer en brouillon</button>}
-        <button className="primary" data-clause-save disabled={busy}>{mode === "version" ? (canPublish ? "Publier la nouvelle version" : "Proposer la modification") : (canPublish ? "Ajouter la clause" : "Proposer à la bibliothèque")}</button>
+        <button className="primary" data-clause-save disabled={busy}>{mode === "version" ? (canPublish ? "Publier la nouvelle version" : "Proposer la modification") : (canPublish ? "Enregistrer la clause" : "Proposer à la bibliothèque")}</button>
       </p>
     </form>
   </div>;

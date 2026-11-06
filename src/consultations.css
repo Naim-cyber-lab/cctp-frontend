@@ -144,3 +144,17 @@ label.check { display: flex; align-items: center; gap: 6px; }
 .change-tag{flex:none;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef2ef;color:#34463d;white-space:nowrap}
 .change-TEXT .change-tag{background:#e9f1fb;color:#1f527f}.change-FORMAT .change-tag{background:#f3ecfa;color:#5b3a86}.change-LINES .change-tag{background:#eaf5ee;color:#245c41}.change-OPTIONS .change-tag{background:#fff6e5;color:#8a5a0a}.change-DOCUMENTS .change-tag{background:#fdecec;color:#8a2f2f}
 .change-before{color:#8a2f2f}.change-after{color:#245c41}
+
+/* Page envoyée aux entreprises : lisibilité et état « offre remise » */
+.portal button.link-button{border:0;background:none;padding:2px 0;margin-top:4px;color:#2f6a53;text-decoration:underline;font-size:12px;font-weight:600;width:fit-content}
+.portal button.link-button:hover:not(:disabled){background:none;color:#17372e}
+.portal .portal-option label.check{display:flex;flex-direction:row;align-items:center;gap:8px;grid-column:1 / -1;white-space:normal;position:static;width:auto;max-width:none;font-weight:600}
+.portal .portal-option label.check input{width:auto;flex:none;margin:0}
+.portal .portal-option{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.portal-lines td:first-child{min-width:220px}
+.portal-lines input[type=number],.portal-lines input[type=text]{width:100%;min-width:90px;box-sizing:border-box}
+.portal-lines td input[type=number]{max-width:140px}
+.portal-waiting{display:flex;gap:12px;align-items:flex-start;background:#eef6f1;border:1px solid #b9d7c6;border-radius:14px;padding:14px 16px;margin:0 0 16px;color:#17372e}
+.portal-waiting svg{flex:none;margin-top:2px;color:#2f6a53}
+.portal-waiting div{display:grid;gap:4px}.portal-waiting b{font-size:14px}.portal-waiting span{font-size:13px;line-height:1.45;color:#3d5a4d}
+.portal-block input:disabled,.portal-block textarea:disabled,.portal-block select:disabled{background:#f3f5f1;color:#3d4a44;opacity:1;cursor:not-allowed}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getPlatrerieQuestionnaire, getRuleOverrides, streamGenerateChapter } from "../api/client";
+import { generatedPrescriptions } from "./questionnaireGeneration";
 
 const KEY = "calepin.answerTrace";
 
@@ -24,13 +25,14 @@ const answered = (answers, labels) =>
     .map(([id, value]) => `${id} — ${labels[id] || id} : ${Array.isArray(value) ? value.join(" ; ") : value}`);
 
 /** Source texte envoyée au moteur de rédaction à partir des réponses du questionnaire (même format que « Générer »). */
-export function buildQuestionnaireSource(qState, mode, labels, ruleOverrides = {}) {
+export function buildQuestionnaireSource(qState, mode, labels, ruleOverrides = {}, questions = []) {
   return [
     `###MODE ${mode}`,
     ...(Object.keys(ruleOverrides).length ? [`###RULES ${JSON.stringify(ruleOverrides)}`] : []),
     ...answered(qState.project, labels),
+    ...generatedPrescriptions(qState.project, questions),
     ...(qState.works || []).map((work) =>
-      [`###OUVRAGE id=${work.id} family=${work.family} label=${work.answers?.["Q-W01"] || work.label}`, ...answered(work.answers, labels)].join("\n"),
+      [`###OUVRAGE id=${work.id} family=${work.family} label=${work.answers?.["Q-W01"] || work.label}`, ...answered(work.answers, labels), ...generatedPrescriptions(work.answers, questions)].join("\n"),
     ),
   ].join("\n");
 }
@@ -52,7 +54,7 @@ export function useChapterTrace({ projectId, chapterId, questionnaire, mode, has
     const run = inFlight.get(key) || (async () => {
       const [manifest, overrides] = await Promise.all([getPlatrerieQuestionnaire(projectId), getRuleOverrides().catch(() => ({}))]);
       const labels = Object.fromEntries((manifest?.questions || []).map((question) => [question.id, question.label]));
-      const source = buildQuestionnaireSource(questionnaire.state, mode, labels, overrides);
+      const source = buildQuestionnaireSource(questionnaire.state, mode, labels, overrides, manifest?.questions || []);
       const result = await streamGenerateChapter(projectId, chapterId, "Rédigez le chapitre Plâtrerie à partir des réponses au questionnaire validées par le maître d’œuvre. Ne complétez aucune donnée manquante.", source, () => {});
       return Array.isArray(result?.trace) ? result.trace : [];
     })();
